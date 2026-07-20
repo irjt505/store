@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, type InputHTMLAttributes } from "react";
+import { useState, useRef, useEffect, useCallback, type InputHTMLAttributes } from "react";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,7 +19,7 @@ export function SearchInput({
   ...props
 }: SearchInputProps) {
   const [internalValue, setInternalValue] = useState(externalValue || "");
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const displayedValue = externalValue !== undefined ? externalValue : internalValue;
 
@@ -33,6 +33,12 @@ export function SearchInput({
     [debounce, onSearch]
   );
 
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
   const handleChange = (val: string) => {
     setInternalValue(val);
     onChange?.(val);
@@ -40,6 +46,7 @@ export function SearchInput({
   };
 
   const handleClear = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
     setInternalValue("");
     onChange?.("");
     onSearch?.("");
@@ -48,12 +55,13 @@ export function SearchInput({
   return (
     <div className={cn("relative", className)}>
       <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-text-muted">
-        <Search size={16} />
+        <Search size={16} aria-hidden="true" />
       </span>
       <input
         type="text"
         value={displayedValue}
         onChange={(e) => handleChange(e.target.value)}
+        aria-label="بحث"
         className={cn(
           "w-full h-9 rounded-lg border border-border bg-surface pr-9 pl-8 text-sm text-text placeholder:text-text-muted",
           "transition-colors duration-150",
@@ -64,7 +72,9 @@ export function SearchInput({
       />
       {displayedValue && (
         <button
+          type="button"
           onClick={handleClear}
+          aria-label="مسح البحث"
           className="absolute left-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-text-muted hover:text-text transition-colors cursor-pointer"
         >
           <X size={14} />

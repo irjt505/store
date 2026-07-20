@@ -2,7 +2,20 @@
 
 import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { Plus, Pencil, Trash2, Eye, Copy, Package, AlertTriangle, ShoppingCart } from "lucide-react";
+import { motion } from "framer-motion";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Eye,
+  Copy,
+  Package,
+  AlertTriangle,
+  ShoppingCart,
+  Layers,
+  Archive,
+  ChevronDown,
+} from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -12,11 +25,20 @@ import { DataTable } from "@/components/ui/DataTable";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Dropdown, DropdownItem } from "@/components/ui/Dropdown";
 import { useToast } from "@/components/ui/Toast";
 import { useCrud } from "@/lib/hooks/useCrud";
-import { formatCurrency, generateId } from "@/lib/utils";
+import { formatCurrency, generateId, cn } from "@/lib/utils";
 
-type ProductType = "physical" | "digital" | "service" | "subscription" | "bundle" | "codes" | "food" | "booking";
+type ProductType =
+  | "physical"
+  | "digital"
+  | "service"
+  | "subscription"
+  | "bundle"
+  | "codes"
+  | "food"
+  | "booking";
 
 type Product = {
   id: string;
@@ -37,6 +59,17 @@ type Product = {
 };
 
 const typeLabels: Record<ProductType, string> = {
+  physical: "فيزيائي",
+  digital: "رقمي",
+  service: "خدمة",
+  subscription: "اشتراك",
+  bundle: "حزمة",
+  codes: "أكواد",
+  food: "غذائي",
+  booking: "حجز",
+};
+
+const typeFullLabels: Record<ProductType, string> = {
   physical: "منتج فيزيائي",
   digital: "منتج رقمي",
   service: "خدمة",
@@ -47,7 +80,10 @@ const typeLabels: Record<ProductType, string> = {
   booking: "حجز / مواعيد",
 };
 
-const typeBadgeVariant: Record<ProductType, "default" | "success" | "warning" | "danger" | "info" | "purple"> = {
+const typeBadgeVariant: Record<
+  ProductType,
+  "default" | "success" | "warning" | "danger" | "info" | "purple"
+> = {
   physical: "info",
   digital: "purple",
   service: "success",
@@ -58,33 +94,195 @@ const typeBadgeVariant: Record<ProductType, "default" | "success" | "warning" | 
   booking: "info",
 };
 
+const typeIconColor: Record<ProductType, string> = {
+  physical: "bg-blue-500/10 text-blue-600",
+  digital: "bg-purple-500/10 text-purple-600",
+  service: "bg-green-500/10 text-green-600",
+  subscription: "bg-amber-500/10 text-amber-600",
+  bundle: "bg-gray-500/10 text-gray-600",
+  codes: "bg-red-500/10 text-red-600",
+  food: "bg-emerald-500/10 text-emerald-600",
+  booking: "bg-sky-500/10 text-sky-600",
+};
+
 const initialProducts: Product[] = [
-  { id: "1", name: "قميص رجالي قطني", type: "physical", price: 149, salePrice: 129, sku: "PHS-001", stock: 250, lowStockThreshold: 20, status: "published", category: "أزياء رجالية", brand: "Nike", images: 5, sales: 342, rating: 4.5, createdAt: "2024-01-15" },
-  { id: "2", name: "حذاء رياضي آير ماكس", type: "physical", price: 499, sku: "PHS-002", stock: 85, lowStockThreshold: 15, status: "published", category: "أحذية رياضية", brand: "Nike", images: 8, sales: 201, rating: 4.8, createdAt: "2024-02-10" },
-  { id: "3", name: "سماعات لاسلكية بلوتوث", type: "physical", price: 299, salePrice: 249, sku: "PHS-003", stock: 0, lowStockThreshold: 10, status: "published", category: "إلكترونيات", brand: "Sony", images: 6, sales: 156, rating: 4.3, createdAt: "2024-03-05" },
-  { id: "4", name: "كتاب البرمجة بلغة TypeScript", type: "digital", price: 49, sku: "DIG-001", stock: 9999, lowStockThreshold: 0, status: "published", category: "كتب رقمية", brand: "TechBooks", images: 1, sales: 342, rating: 4.7, createdAt: "2024-01-20" },
-  { id: "5", name: "دورة تطوير تطبيقات الويب", type: "digital", price: 199, salePrice: 149, sku: "DIG-002", stock: 9999, lowStockThreshold: 0, status: "published", category: "دورات تعليمية", brand: "LearnHub", images: 3, sales: 128, rating: 4.9, createdAt: "2024-02-01" },
-  { id: "6", name: "خدمة تصميم شعار احترافي", type: "service", price: 599, sku: "SRV-001", stock: 9999, lowStockThreshold: 0, status: "published", category: "تصميم", brand: "DesignPro", images: 4, sales: 89, rating: 4.6, createdAt: "2024-03-15" },
-  { id: "7", name: "اشتراك شهري - الخطة الذهبية", type: "subscription", price: 79, sku: "SUB-001", stock: 9999, lowStockThreshold: 0, status: "published", category: "اشتراكات", brand: "SaaS", images: 2, sales: 456, rating: 4.4, createdAt: "2024-01-01" },
-  { id: "8", name: "حزمة المطور الشاملة", type: "bundle", price: 399, salePrice: 349, sku: "BND-001", stock: 500, lowStockThreshold: 50, status: "published", category: "حزم", brand: "DevPack", images: 3, sales: 78, rating: 4.2, createdAt: "2024-02-15" },
-  { id: "9", name: "أكواد PlayStation 5 - 100 ريال", type: "codes", price: 100, sku: "COD-001", stock: 35, lowStockThreshold: 20, status: "published", category: "أكواد رقمية", brand: "Sony", images: 1, sales: 567, rating: 4.8, createdAt: "2024-03-01" },
-  { id: "10", name: "وجبة دجاج مشوي مع أرز", type: "food", price: 45, salePrice: 39, sku: "FOD-001", stock: 30, lowStockThreshold: 10, status: "published", category: "وجبات", brand: "FoodKing", images: 4, sales: 890, rating: 4.1, createdAt: "2024-04-01" },
-  { id: "11", name: "حجز موعد استشارة قانونية", type: "booking", price: 250, sku: "BKG-001", stock: 10, lowStockThreshold: 3, status: "published", category: "خدمات قانونية", brand: "LawFirm", images: 2, sales: 45, rating: 4.5, createdAt: "2024-04-10" },
-  { id: "12", name: "ساعة يد كلاسيكية", type: "physical", price: 899, sku: "PHS-004", stock: 12, lowStockThreshold: 5, status: "draft", category: "إكسسوارات", brand: "Casio", images: 6, sales: 0, rating: 0, createdAt: "2024-04-15" },
-  { id: "13", name: "套件 تطوير React المتقدم", type: "bundle", price: 599, sku: "BND-002", stock: 0, lowStockThreshold: 10, status: "archived", category: "حزم", brand: "DevPack", images: 2, sales: 23, rating: 3.9, createdAt: "2024-01-10" },
-  { id: "14", name: "وجبة سushi يابانية", type: "food", price: 89, sku: "FOD-002", stock: 5, lowStockThreshold: 8, status: "published", category: "وجبات", brand: "SushiHub", images: 5, sales: 234, rating: 4.7, createdAt: "2024-04-20" },
+  {
+    id: "1",
+    name: "قميص رجالي قطني",
+    type: "physical",
+    price: 149,
+    salePrice: 129,
+    sku: "PHS-001",
+    stock: 250,
+    lowStockThreshold: 20,
+    status: "published",
+    category: "أزياء رجالية",
+    brand: "Nike",
+    images: 5,
+    sales: 342,
+    rating: 4.5,
+    createdAt: "2024-01-15",
+  },
+  {
+    id: "2",
+    name: "حذاء رياضي آير ماكس",
+    type: "physical",
+    price: 499,
+    sku: "PHS-002",
+    stock: 85,
+    lowStockThreshold: 15,
+    status: "published",
+    category: "أحذية رياضية",
+    brand: "Nike",
+    images: 8,
+    sales: 201,
+    rating: 4.8,
+    createdAt: "2024-02-10",
+  },
+  {
+    id: "3",
+    name: "سماعات لاسلكية بلوتوث",
+    type: "physical",
+    price: 299,
+    salePrice: 249,
+    sku: "PHS-003",
+    stock: 0,
+    lowStockThreshold: 10,
+    status: "published",
+    category: "إلكترونيات",
+    brand: "Sony",
+    images: 6,
+    sales: 156,
+    rating: 4.3,
+    createdAt: "2024-03-05",
+  },
+  {
+    id: "4",
+    name: "كتاب البرمجة بلغة TypeScript",
+    type: "digital",
+    price: 49,
+    sku: "DIG-001",
+    stock: 9999,
+    lowStockThreshold: 0,
+    status: "published",
+    category: "كتب رقمية",
+    brand: "TechBooks",
+    images: 1,
+    sales: 342,
+    rating: 4.7,
+    createdAt: "2024-01-20",
+  },
+  {
+    id: "5",
+    name: "دورة تطوير تطبيقات الويب",
+    type: "digital",
+    price: 199,
+    salePrice: 149,
+    sku: "DIG-002",
+    stock: 9999,
+    lowStockThreshold: 0,
+    status: "published",
+    category: "دورات تعليمية",
+    brand: "LearnHub",
+    images: 3,
+    sales: 128,
+    rating: 4.9,
+    createdAt: "2024-02-01",
+  },
+  {
+    id: "6",
+    name: "خدمة تصميم شعار احترافي",
+    type: "service",
+    price: 599,
+    sku: "SRV-001",
+    stock: 9999,
+    lowStockThreshold: 0,
+    status: "published",
+    category: "تصميم",
+    brand: "DesignPro",
+    images: 4,
+    sales: 89,
+    rating: 4.6,
+    createdAt: "2024-03-15",
+  },
+  {
+    id: "7",
+    name: "اشتراك شهري - الخطة الذهبية",
+    type: "subscription",
+    price: 79,
+    sku: "SUB-001",
+    stock: 9999,
+    lowStockThreshold: 0,
+    status: "published",
+    category: "اشتراكات",
+    brand: "SaaS",
+    images: 2,
+    sales: 456,
+    rating: 4.4,
+    createdAt: "2024-01-01",
+  },
+  {
+    id: "8",
+    name: "حزمة المطور الشاملة",
+    type: "bundle",
+    price: 399,
+    salePrice: 349,
+    sku: "BND-001",
+    stock: 500,
+    lowStockThreshold: 50,
+    status: "published",
+    category: "حزم",
+    brand: "DevPack",
+    images: 3,
+    sales: 78,
+    rating: 4.2,
+    createdAt: "2024-02-15",
+  },
+  {
+    id: "9",
+    name: "ساعة يد كلاسيكية",
+    type: "physical",
+    price: 899,
+    sku: "PHS-004",
+    stock: 12,
+    lowStockThreshold: 5,
+    status: "draft",
+    category: "إكسسوارات",
+    brand: "Casio",
+    images: 6,
+    sales: 0,
+    rating: 0,
+    createdAt: "2024-04-15",
+  },
+  {
+    id: "10",
+    name: "وجبة سوشي يابانية",
+    type: "food",
+    price: 89,
+    salePrice: 79,
+    sku: "FOD-002",
+    stock: 5,
+    lowStockThreshold: 8,
+    status: "published",
+    category: "وجبات",
+    brand: "SushiHub",
+    images: 5,
+    sales: 234,
+    rating: 4.7,
+    createdAt: "2024-04-20",
+  },
 ];
 
 const typeOptions = [
   { value: "", label: "جميع الأنواع" },
-  { value: "physical", label: "منتجات فيزيائية" },
-  { value: "digital", label: "منتجات رقمية" },
-  { value: "service", label: "خدمات" },
-  { value: "subscription", label: "اشتراكات" },
-  { value: "bundle", label: "حزم منتجات" },
-  { value: "codes", label: "أكواد / رواتب" },
-  { value: "food", label: "منتجات غذائية" },
-  { value: "booking", label: "حجوزات / مواعيد" },
+  { value: "physical", label: "فيزيائي" },
+  { value: "digital", label: "رقمي" },
+  { value: "service", label: "خدمة" },
+  { value: "subscription", label: "اشتراك" },
+  { value: "bundle", label: "حزمة" },
+  { value: "codes", label: "أكواد" },
+  { value: "food", label: "غذائي" },
+  { value: "booking", label: "حجز" },
 ];
 
 const statusOptions = [
@@ -104,37 +302,67 @@ const categoryOptions = [
   { value: "تصميم", label: "تصميم" },
   { value: "اشتراكات", label: "اشتراكات" },
   { value: "حزم", label: "حزم" },
-  { value: "أكواد رقمية", label: "أكواد رقمية" },
-  { value: "وجبات", label: "وجبات" },
-  { value: "خدمات قانونية", label: "خدمات قانونية" },
   { value: "إكسسوارات", label: "إكسسوارات" },
+  { value: "وجبات", label: "وجبات" },
 ];
 
-const brandOptions = [
-  { value: "", label: "جميع العلامات التجارية" },
-  { value: "Nike", label: "Nike" },
-  { value: "Sony", label: "Sony" },
-  { value: "TechBooks", label: "TechBooks" },
-  { value: "LearnHub", label: "LearnHub" },
-  { value: "DesignPro", label: "DesignPro" },
-  { value: "SaaS", label: "SaaS" },
-  { value: "DevPack", label: "DevPack" },
-  { value: "FoodKing", label: "FoodKing" },
-  { value: "LawFirm", label: "LawFirm" },
-  { value: "Casio", label: "Casio" },
-  { value: "SushiHub", label: "SushiHub" },
-];
+const stagger = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.05 },
+  },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as const } },
+};
 
 function getStatusBadge(status: Product["status"]) {
-  if (status === "published") return <Badge variant="success" dot>منشور</Badge>;
-  if (status === "draft") return <Badge variant="default" dot>مسودة</Badge>;
-  return <Badge variant="warning" dot>مؤرشف</Badge>;
+  if (status === "published")
+    return (
+      <Badge variant="success" dot>
+        منشور
+      </Badge>
+    );
+  if (status === "draft")
+    return (
+      <Badge variant="warning" dot>
+        مسودة
+      </Badge>
+    );
+  return (
+    <Badge variant="default" dot>
+      مؤرشف
+    </Badge>
+  );
 }
 
-function getStockBadge(stock: number, threshold: number) {
-  if (stock === 0) return <Badge variant="danger" dot>نفد المخزون</Badge>;
-  if (stock <= threshold) return <Badge variant="warning" dot>مخزون منخفض</Badge>;
-  return <Badge variant="success" dot>{stock.toLocaleString("ar")}</Badge>;
+function getStockDisplay(stock: number, threshold: number) {
+  if (stock === 0)
+    return (
+      <div className="flex items-center gap-1.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#DC2626]" />
+        <span className="text-sm font-medium text-[#DC2626]">نفد</span>
+      </div>
+    );
+  if (stock <= threshold)
+    return (
+      <div className="flex items-center gap-1.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-[#F59E0B]" />
+        <span className="text-sm font-medium text-[#F59E0B]">
+          {stock.toLocaleString("ar")}
+        </span>
+      </div>
+    );
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="h-1.5 w-1.5 rounded-full bg-[#16A34A]" />
+      <span className="text-sm font-medium text-[#111827]">
+        {stock.toLocaleString("ar")}
+      </span>
+    </div>
+  );
 }
 
 export default function ProductsPage() {
@@ -151,9 +379,6 @@ export default function ProductsPage() {
     setSearch,
     filters,
     setFilter,
-    sortKey,
-    sortDir,
-    setSort,
     page,
     setPage,
     perPage,
@@ -186,26 +411,34 @@ export default function ProductsPage() {
     setBulkDeleteOpen(false);
   }, [selectedIds, removeMany, success, setSelectedIds]);
 
-  const handleDuplicate = useCallback((product: Product) => {
-    const newProduct: Product = {
-      ...product,
-      id: generateId(),
-      name: `${product.name} (نسخة)`,
-      sku: `${product.sku}-COPY`,
-      status: "draft",
-      sales: 0,
-      rating: 0,
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    success("تم التكرار", `تم نسخ "${product.name}" بنجاح`);
-    void newProduct;
-  }, [success]);
+  const handleDuplicate = useCallback(
+    (product: Product) => {
+      const newProduct: Product = {
+        ...product,
+        id: generateId(),
+        name: `${product.name} (نسخة)`,
+        sku: `${product.sku}-COPY`,
+        status: "draft",
+        sales: 0,
+        rating: 0,
+        createdAt: new Date().toISOString().split("T")[0],
+      };
+      success("تم التكرار", `تم نسخ "${product.name}" بنجاح`);
+      void newProduct;
+    },
+    [success]
+  );
 
-  const totalSales = useMemo(() => products.reduce((s, p) => s + p.sales, 0), [products]);
-  const totalRevenue = useMemo(() => products.reduce((s, p) => s + p.price * p.sales, 0), [products]);
-  const publishedCount = useMemo(() => products.filter((p) => p.status === "published").length, [products]);
-  const lowStockCount = useMemo(
-    () => products.filter((p) => p.stock <= p.lowStockThreshold && p.stock > 0).length,
+  const totalPublished = useMemo(
+    () => products.filter((p) => p.status === "published").length,
+    [products]
+  );
+  const draftCount = useMemo(
+    () => products.filter((p) => p.status === "draft").length,
+    [products]
+  );
+  const outOfStockCount = useMemo(
+    () => products.filter((p) => p.stock === 0).length,
     [products]
   );
 
@@ -217,12 +450,21 @@ export default function ProductsPage() {
         sortable: true,
         render: (_: unknown, row: Product) => (
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-surface-hover flex items-center justify-center text-text-muted shrink-0">
+            <div
+              className={cn(
+                "h-10 w-10 rounded-lg flex items-center justify-center shrink-0",
+                typeIconColor[row.type]
+              )}
+            >
               <Package size={18} />
             </div>
             <div className="min-w-0">
-              <p className="font-medium text-text truncate">{row.name}</p>
-              <p className="text-xs text-text-muted">{row.sku}</p>
+              <p className="font-medium text-[#111827] truncate max-w-[200px]">
+                {row.name}
+              </p>
+              <p className="text-xs text-[#9CA3AF] font-mono" dir="ltr">
+                {row.sku}
+              </p>
             </div>
           </div>
         ),
@@ -232,7 +474,7 @@ export default function ProductsPage() {
         label: "النوع",
         sortable: true,
         render: (value: unknown) => (
-          <Badge variant={typeBadgeVariant[value as ProductType]}>
+          <Badge variant={typeBadgeVariant[value as ProductType]} size="sm">
             {typeLabels[value as ProductType]}
           </Badge>
         ),
@@ -242,14 +484,20 @@ export default function ProductsPage() {
         label: "السعر",
         sortable: true,
         render: (_: unknown, row: Product) => (
-          <div className="text-left">
+          <div>
             {row.salePrice ? (
-              <>
-                <p className="font-semibold text-danger">{formatCurrency(row.salePrice)}</p>
-                <p className="text-xs text-text-muted line-through">{formatCurrency(row.price)}</p>
-              </>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-semibold text-[#111827]">
+                  {formatCurrency(row.salePrice)}
+                </span>
+                <span className="text-xs text-[#9CA3AF] line-through">
+                  {formatCurrency(row.price)}
+                </span>
+              </div>
             ) : (
-              <p className="font-semibold">{formatCurrency(row.price)}</p>
+              <span className="text-sm font-semibold text-[#111827]">
+                {formatCurrency(row.price)}
+              </span>
             )}
           </div>
         ),
@@ -258,28 +506,51 @@ export default function ProductsPage() {
         key: "stock" as const,
         label: "المخزون",
         sortable: true,
-        render: (_: unknown, row: Product) => getStockBadge(row.stock, row.lowStockThreshold),
+        render: (_: unknown, row: Product) =>
+          getStockDisplay(row.stock, row.lowStockThreshold),
       },
-      { key: "sales" as const, label: "المبيعات", sortable: true },
       {
         key: "status" as const,
         label: "الحالة",
         sortable: true,
-        render: (value: unknown) => getStatusBadge(value as Product["status"]),
+        render: (value: unknown) =>
+          getStatusBadge(value as Product["status"]),
       },
       {
         key: "actions" as const,
-        label: "الإجراءات",
-        className: "w-32",
+        label: "",
+        className: "w-12",
         render: (_: unknown, row: Product) => (
-          <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" icon={<Eye size={14} />} onClick={() => setViewModal(row)} />
+          <Dropdown
+            align="start"
+            trigger={
+              <button
+                type="button"
+                className="flex items-center justify-center h-8 w-8 rounded-lg text-[#9CA3AF] hover:text-[#111827] hover:bg-[#F3F4F6] transition-colors cursor-pointer"
+              >
+                <ChevronDown size={16} />
+              </button>
+            }
+          >
+            <DropdownItem onClick={() => setViewModal(row)}>
+              <Eye size={14} />
+              عرض التفاصيل
+            </DropdownItem>
             <Link href={`/admin/products/${row.id}/edit`}>
-              <Button variant="ghost" size="sm" icon={<Pencil size={14} />} />
+              <DropdownItem>
+                <Pencil size={14} />
+                تعديل
+              </DropdownItem>
             </Link>
-            <Button variant="ghost" size="sm" icon={<Copy size={14} />} onClick={() => handleDuplicate(row)} />
-            <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} className="text-danger hover:text-danger" onClick={() => setDeleteTarget(row)} />
-          </div>
+            <DropdownItem onClick={() => handleDuplicate(row)}>
+              <Copy size={14} />
+              نسخ المنتج
+            </DropdownItem>
+            <DropdownItem onClick={() => setDeleteTarget(row)} danger>
+              <Trash2 size={14} />
+              حذف
+            </DropdownItem>
+          </Dropdown>
         ),
       },
     ],
@@ -287,99 +558,158 @@ export default function ProductsPage() {
   );
 
   const bulkActions = [
-    { label: "حذف المحدد", icon: <Trash2 size={14} />, onClick: () => setBulkDeleteOpen(true), variant: "danger" as const },
+    {
+      label: "حذف المحدد",
+      icon: <Trash2 size={14} />,
+      onClick: () => setBulkDeleteOpen(true),
+      variant: "danger" as const,
+    },
   ];
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="المنتجات"
-        subtitle="إدارة جميع المنتجات في متجرك"
-        actions={
-          <Button icon={<Plus size={16} />} onClick={() => setTypeSelectorOpen(true)}>
-            إضافة منتج
-          </Button>
-        }
-      />
+    <motion.div
+      className="space-y-6"
+      variants={stagger}
+      initial="hidden"
+      animate="show"
+    >
+      <motion.div variants={fadeUp}>
+        <PageHeader
+          title="المنتجات"
+          subtitle="إدارة منتجات متجرك"
+          actions={
+            <Button
+              icon={<Plus size={16} />}
+              onClick={() => setTypeSelectorOpen(true)}
+            >
+              إضافة منتج
+            </Button>
+          }
+        />
+      </motion.div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card padding="sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-              <Package size={20} className="text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-text">{products.length}</p>
-              <p className="text-xs text-text-muted">إجمالي المنتجات</p>
-            </div>
-          </div>
-        </Card>
-        <Card padding="sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10">
-              <ShoppingCart size={20} className="text-success" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-text">{publishedCount}</p>
-              <p className="text-xs text-text-muted">منتجات منشورة</p>
+      <motion.div
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+        variants={fadeUp}
+      >
+        <div className="bg-surface rounded-xl border border-[#E5E7EB] p-5 transition-all duration-200 hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center justify-between">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EFF6FF]">
+              <Package size={20} className="text-[#2563EB]" />
             </div>
           </div>
-        </Card>
-        <Card padding="sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
-              <AlertTriangle size={20} className="text-warning" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-text">{lowStockCount}</p>
-              <p className="text-xs text-text-muted">مخزون منخفض</p>
+          <div className="mt-3">
+            <p className="text-2xl font-bold text-[#111827] tracking-tight">
+              {products.length}
+            </p>
+            <p className="text-sm text-[#6B7280] mt-0.5">إجمالي المنتجات</p>
+          </div>
+        </div>
+        <div className="bg-surface rounded-xl border border-[#E5E7EB] p-5 transition-all duration-200 hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center justify-between">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F0FDF4]">
+              <ShoppingCart size={20} className="text-[#16A34A]" />
             </div>
           </div>
-        </Card>
-        <Card padding="sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10">
-              <span className="text-sm font-bold text-info">ر.س</span>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-text">{formatCurrency(totalRevenue)}</p>
-              <p className="text-xs text-text-muted">إجمالي الإيرادات</p>
+          <div className="mt-3">
+            <p className="text-2xl font-bold text-[#111827] tracking-tight">
+              {totalPublished}
+            </p>
+            <p className="text-sm text-[#6B7280] mt-0.5">منشور</p>
+          </div>
+        </div>
+        <div className="bg-surface rounded-xl border border-[#E5E7EB] p-5 transition-all duration-200 hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center justify-between">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FFFBEB]">
+              <Layers size={20} className="text-[#F59E0B]" />
             </div>
           </div>
-        </Card>
-      </div>
+          <div className="mt-3">
+            <p className="text-2xl font-bold text-[#111827] tracking-tight">
+              {draftCount}
+            </p>
+            <p className="text-sm text-[#6B7280] mt-0.5">مسودة</p>
+          </div>
+        </div>
+        <div className="bg-surface rounded-xl border border-[#E5E7EB] p-5 transition-all duration-200 hover:shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+          <div className="flex items-center justify-between">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#FEF2F2]">
+              <AlertTriangle size={20} className="text-[#DC2626]" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <p className="text-2xl font-bold text-[#111827] tracking-tight">
+              {outOfStockCount}
+            </p>
+            <p className="text-sm text-[#6B7280] mt-0.5">منتهي المخزون</p>
+          </div>
+        </div>
+      </motion.div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <SearchInput placeholder="بحث بالاسم، SKU، العلامة التجارية..." value={search} onChange={setSearch} className="w-72" />
-        <Select options={typeOptions} value={filters.type || ""} onChange={(e) => setFilter("type", e.target.value)} />
-        <Select options={statusOptions} value={filters.status || ""} onChange={(e) => setFilter("status", e.target.value)} />
-        <Select options={categoryOptions} value={filters.category || ""} onChange={(e) => setFilter("category", e.target.value)} />
-        <Select options={brandOptions} value={filters.brand || ""} onChange={(e) => setFilter("brand", e.target.value)} />
-      </div>
+      <motion.div variants={fadeUp}>
+        <Card padding="sm">
+          <div className="flex flex-wrap items-center gap-3 p-1">
+            <SearchInput
+              placeholder="بحث بالاسم، SKU، العلامة التجارية..."
+              value={search}
+              onChange={setSearch}
+              className="w-72"
+            />
+            <Select
+              options={statusOptions}
+              value={filters.status || ""}
+              onChange={(e) => setFilter("status", e.target.value)}
+            />
+            <Select
+              options={typeOptions}
+              value={filters.type || ""}
+              onChange={(e) => setFilter("type", e.target.value)}
+            />
+            <Select
+              options={categoryOptions}
+              value={filters.category || ""}
+              onChange={(e) => setFilter("category", e.target.value)}
+            />
+            {Object.keys(filters).length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  Object.keys(filters).forEach((k) => setFilter(k, ""));
+                }}
+                className="text-sm text-[#2563EB] hover:text-[#1D4ED8] transition-colors cursor-pointer"
+              >
+                مسح الفلاتر
+              </button>
+            )}
+          </div>
+        </Card>
+      </motion.div>
 
-      <DataTable
-        columns={columns}
-        data={paginatedData}
-        emptyMessage="لا توجد منتجات"
-        emptyIcon={<Package size={48} />}
-        selectable
-        selectedKeys={selectedIds}
-        onSelectionChange={setSelectedIds}
-        rowKey="id"
-        sortable
-        pagination={{
-          currentPage: page,
-          totalPages,
-          totalItems,
-          itemsPerPage: perPage,
-          onPageChange: setPage,
-          onItemsPerPageChange: setPerPage,
-        }}
-        bulkActions={bulkActions}
-        exportable
-        title={`المنتجات (${totalItems})`}
-        striped
-      />
+      <motion.div variants={fadeUp}>
+        <DataTable
+          columns={columns}
+          data={paginatedData}
+          emptyMessage="لا توجد منتجات"
+          emptyIcon={<Package size={48} />}
+          selectable
+          selectedKeys={selectedIds}
+          onSelectionChange={setSelectedIds}
+          rowKey="id"
+          sortable
+          pagination={{
+            currentPage: page,
+            totalPages,
+            totalItems,
+            itemsPerPage: perPage,
+            onPageChange: setPage,
+            onItemsPerPageChange: setPerPage,
+          }}
+          bulkActions={bulkActions}
+          exportable
+          title={`المنتجات (${totalItems})`}
+        />
+      </motion.div>
 
       <ConfirmDialog
         open={!!deleteTarget}
@@ -404,82 +734,162 @@ export default function ProductsPage() {
       />
 
       {viewModal && (
-        <Modal open onClose={() => setViewModal(null)} title="تفاصيل المنتج" size="lg">
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-text-muted">الاسم</p>
-                <p className="font-medium text-text">{viewModal.name}</p>
+        <Modal
+          open
+          onClose={() => setViewModal(null)}
+          title="تفاصيل المنتج"
+          size="lg"
+        >
+          <div className="space-y-5">
+            <div className="flex items-center gap-4 p-4 rounded-xl bg-[#F7F8FA]">
+              <div
+                className={cn(
+                  "h-14 w-14 rounded-xl flex items-center justify-center shrink-0",
+                  typeIconColor[viewModal.type]
+                )}
+              >
+                <Package size={24} />
               </div>
-              <div>
-                <p className="text-sm text-text-muted">النوع</p>
-                <Badge variant={typeBadgeVariant[viewModal.type]}>{typeLabels[viewModal.type]}</Badge>
-              </div>
-              <div>
-                <p className="text-sm text-text-muted">السعر</p>
-                <p className="font-semibold text-text">
-                  {viewModal.salePrice ? (
-                    <>
-                      <span className="text-danger">{formatCurrency(viewModal.salePrice)}</span>
-                      <span className="text-text-muted line-through mr-2">{formatCurrency(viewModal.price)}</span>
-                    </>
-                  ) : (
-                    formatCurrency(viewModal.price)
-                  )}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-text-muted">الحالة</p>
-                {getStatusBadge(viewModal.status)}
-              </div>
-              <div>
-                <p className="text-sm text-text-muted">المخزون</p>
-                {getStockBadge(viewModal.stock, viewModal.lowStockThreshold)}
-              </div>
-              <div>
-                <p className="text-sm text-text-muted">المبيعات</p>
-                <p className="font-medium text-text">{viewModal.sales.toLocaleString("ar")}</p>
-              </div>
-              <div>
-                <p className="text-sm text-text-muted">التصنيف</p>
-                <p className="font-medium text-text">{viewModal.category}</p>
-              </div>
-              <div>
-                <p className="text-sm text-text-muted">العلامة التجارية</p>
-                <p className="font-medium text-text">{viewModal.brand}</p>
-              </div>
-              <div>
-                <p className="text-sm text-text-muted">SKU</p>
-                <p className="font-medium text-text" dir="ltr">{viewModal.sku}</p>
-              </div>
-              <div>
-                <p className="text-sm text-text-muted">التقييم</p>
-                <p className="font-medium text-text">{viewModal.rating > 0 ? `${viewModal.rating} / 5` : "—"}</p>
+              <div className="min-w-0">
+                <h3 className="font-semibold text-[#111827] text-lg">
+                  {viewModal.name}
+                </h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge
+                    variant={typeBadgeVariant[viewModal.type]}
+                    size="sm"
+                  >
+                    {typeFullLabels[viewModal.type]}
+                  </Badge>
+                  {getStatusBadge(viewModal.status)}
+                </div>
               </div>
             </div>
-            <div className="flex justify-end gap-3">
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <p className="text-xs text-[#9CA3AF]">السعر</p>
+                {viewModal.salePrice ? (
+                  <div>
+                    <p className="font-semibold text-[#111827]">
+                      {formatCurrency(viewModal.salePrice)}
+                    </p>
+                    <p className="text-xs text-[#9CA3AF] line-through">
+                      {formatCurrency(viewModal.price)}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="font-semibold text-[#111827]">
+                    {formatCurrency(viewModal.price)}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-[#9CA3AF]">المخزون</p>
+                {getStockDisplay(viewModal.stock, viewModal.lowStockThreshold)}
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-[#9CA3AF]">المبيعات</p>
+                <p className="font-semibold text-[#111827]">
+                  {viewModal.sales.toLocaleString("ar")}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-[#9CA3AF]">التصنيف</p>
+                <p className="font-medium text-[#111827]">
+                  {viewModal.category}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-[#9CA3AF]">العلامة التجارية</p>
+                <p className="font-medium text-[#111827]">
+                  {viewModal.brand}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-[#9CA3AF]">SKU</p>
+                <p className="font-medium text-[#111827] font-mono" dir="ltr">
+                  {viewModal.sku}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-[#9CA3AF]">التقييم</p>
+                <p className="font-medium text-[#111827]">
+                  {viewModal.rating > 0
+                    ? `${viewModal.rating} / 5`
+                    : "—"}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-[#9CA3AF]">الصور</p>
+                <p className="font-medium text-[#111827]">
+                  {viewModal.images} صور
+                </p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-[#9CA3AF]">تاريخ الإنشاء</p>
+                <p className="font-medium text-[#111827]">
+                  {new Intl.DateTimeFormat("ar-SA", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  }).format(new Date(viewModal.createdAt))}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2 border-t border-[#E5E7EB]">
               <Link href={`/admin/products/${viewModal.id}/edit`}>
-                <Button variant="primary" icon={<Pencil size={14} />}>تعديل</Button>
+                <Button variant="primary" icon={<Pencil size={14} />}>
+                  تعديل
+                </Button>
               </Link>
-              <Button variant="secondary" onClick={() => setViewModal(null)}>إغلاق</Button>
+              <Button
+                variant="secondary"
+                onClick={() => setViewModal(null)}
+              >
+                إغلاق
+              </Button>
             </div>
           </div>
         </Modal>
       )}
 
-      <Modal open={typeSelectorOpen} onClose={() => setTypeSelectorOpen(false)} title="اختر نوع المنتج" size="md">
-        <div className="grid grid-cols-2 gap-3">
-          {Object.entries(typeLabels).map(([key, label]) => (
+      <Modal
+        open={typeSelectorOpen}
+        onClose={() => setTypeSelectorOpen(false)}
+        title="اختر نوع المنتج"
+        size="md"
+      >
+        <p className="text-sm text-[#6B7280] mb-4">
+          اختر نوع المنتج الذي تريد إضافته
+        </p>
+        <div className="grid grid-cols-2 gap-2">
+          {Object.entries(typeFullLabels).map(([key, label]) => (
             <Link
               key={key}
               href={`/admin/products/new?type=${key}`}
-              className="flex items-center gap-3 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all cursor-pointer"
+              className={cn(
+                "flex items-center gap-3 p-3.5 rounded-xl border border-[#E5E7EB]",
+                "hover:border-[#2563EB] hover:bg-[#EFF6FF] transition-all duration-150 cursor-pointer group"
+              )}
             >
-              <Badge variant={typeBadgeVariant[key as ProductType]}>{label}</Badge>
+              <div
+                className={cn(
+                  "h-9 w-9 rounded-lg flex items-center justify-center transition-colors",
+                  "group-hover:scale-105",
+                  typeIconColor[key as ProductType]
+                )}
+              >
+                <Package size={16} />
+              </div>
+              <span className="text-sm font-medium text-[#111827] group-hover:text-[#2563EB] transition-colors">
+                {label}
+              </span>
             </Link>
           ))}
         </div>
       </Modal>
-    </div>
+    </motion.div>
   );
 }

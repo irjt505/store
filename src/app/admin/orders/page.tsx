@@ -1,24 +1,33 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { motion } from "framer-motion";
 import {
   Package,
   Clock,
   Truck,
   CheckCircle,
   XCircle,
-  RotateCcw,
   Eye,
   Pencil,
   Printer,
   StickyNote,
-  Plus,
   Download,
   Filter,
   ShoppingCart,
   Banknote,
   ArrowUpDown,
   FileCheck,
+  RotateCcw,
+  ChevronDown,
+  CircleDot,
+  Calendar,
+  ChevronLeft,
+  Mail,
+  Phone,
+  MapPin,
+  CreditCard,
+  MoreHorizontal,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -33,19 +42,26 @@ import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
+import { Dropdown, DropdownItem } from "@/components/ui/Dropdown";
+import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
 import { useCrud } from "@/lib/hooks/useCrud";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate, cn } from "@/lib/utils";
 
-type OrderStatus = "review" | "processing" | "shipping" | "delivered" | "completed" | "cancelled" | "returned";
+type OrderStatus =
+  | "review"
+  | "processing"
+  | "shipping"
+  | "delivered"
+  | "completed"
+  | "cancelled"
+  | "returned";
 type PaymentStatus = "paid" | "pending" | "failed" | "refunded";
-type OrderSource = "online" | "phone" | "walk-in";
 
 type Order = {
   id: string;
   number: string;
   customer: string;
-  customerAvatar?: string;
   email: string;
   phone: string;
   date: string;
@@ -53,57 +69,166 @@ type Order = {
   total: number;
   paymentStatus: PaymentStatus;
   status: OrderStatus;
-  source: OrderSource;
   shippingAddress?: string;
   notes?: string;
 };
 
 const mockOrders: Order[] = [
-  { id: "1", number: "#1001", customer: "أحمد بن محمد", email: "ahmed@example.com", phone: "+966501234567", date: "2025-07-20", items: 5, total: 2450, paymentStatus: "paid", status: "completed", source: "online", shippingAddress: "الرياض، حي النسيم، شارع الأمير سلطان 45" },
-  { id: "2", number: "#1002", customer: "سارة العلي", email: "sara@example.com", phone: "+966509876543", date: "2025-07-20", items: 2, total: 890, paymentStatus: "paid", status: "shipping", source: "online", shippingAddress: "جدة، حي الروضة، شارع فلسطين 12" },
-  { id: "3", number: "#1003", customer: "محمد الفهد", email: "mohammed@example.com", phone: "+966505551234", date: "2025-07-19", items: 8, total: 3200, paymentStatus: "pending", status: "review", source: "phone" },
-  { id: "4", number: "#1004", customer: "فاطمة الزهراء", email: "fatima@example.com", phone: "+966507778899", date: "2025-07-19", items: 3, total: 1560, paymentStatus: "paid", status: "processing", source: "online", shippingAddress: "الدمام، حي الفيصلية، شارع الملك فهد 78" },
-  { id: "5", number: "#1005", customer: "خالد العمري", email: "khalid@example.com", phone: "+966502223344", date: "2025-07-18", items: 1, total: 750, paymentStatus: "failed", status: "cancelled", source: "online" },
-  { id: "6", number: "#1006", customer: "نورة السعيد", email: "noura@example.com", phone: "+966504445566", date: "2025-07-18", items: 6, total: 4100, paymentStatus: "paid", status: "shipping", source: "walk-in" },
-  { id: "7", number: "#1007", customer: "عبدالله الحربي", email: "abdullah@example.com", phone: "+966506667788", date: "2025-07-17", items: 2, total: 680, paymentStatus: "paid", status: "completed", source: "online", shippingAddress: "الخبر، حي العليا، شارع التحلية 33" },
-  { id: "8", number: "#1008", customer: "ريم الشمري", email: "reem@example.com", phone: "+966508889900", date: "2025-07-17", items: 4, total: 2100, paymentStatus: "refunded", status: "returned", source: "phone", shippingAddress: "القطيف، حي الصالحية، شارع الأمير سلطان 90" },
-  { id: "9", number: "#1009", customer: "ياسر القحطاني", email: "yasser@example.com", phone: "+966501112233", date: "2025-07-16", items: 3, total: 1850, paymentStatus: "pending", status: "review", source: "online", shippingAddress: "الظهران، حي الظهران، شارع الظهران 55" },
-  { id: "10", number: "#1010", customer: "هند المطيري", email: "hind@example.com", phone: "+966503334455", date: "2025-07-16", items: 7, total: 3400, paymentStatus: "paid", status: "delivered", source: "online", shippingAddress: "الرياض، حي الملقا، شارع أنس بن مالك 21" },
-  { id: "11", number: "#1011", customer: " Saud الدوسري", email: "saud@example.com", phone: "+966505556677", date: "2025-07-15", items: 2, total: 520, paymentStatus: "paid", status: "completed", source: "walk-in" },
-  { id: "12", number: "#1012", customer: "منال العنزي", email: "manal@example.com", phone: "+966507778811", date: "2025-07-15", items: 5, total: 2890, paymentStatus: "paid", status: "completed", source: "online", shippingAddress: "مكة المكرمة، حي العزيزية، شارع المسجد الحرام 100" },
-  { id: "13", number: "#1013", customer: "طارق البكري", email: "tariq@example.com", phone: "+966509990011", date: "2025-07-14", items: 1, total: 350, paymentStatus: "pending", status: "review", source: "phone" },
-  { id: "14", number: "#1014", customer: "دانة السويلم", email: "dana@example.com", phone: "+966501122334", date: "2025-07-14", items: 4, total: 1780, paymentStatus: "paid", status: "processing", source: "online", shippingAddress: "المدينة المنورة، حي قباء، شارع قباء 67" },
-  { id: "15", number: "#1015", customer: "حسن الجابري", email: "hassan@example.com", phone: "+966505566778", date: "2025-07-13", items: 3, total: 950, paymentStatus: "refunded", status: "cancelled", source: "online" },
-  { id: "16", number: "#1016", customer: "لطيفة الحارثي", email: "latifa@example.com", phone: "+966503344556", date: "2025-07-13", items: 6, total: 5200, paymentStatus: "paid", status: "shipping", source: "online", shippingAddress: "أبها، حي السوادي، شارع الأمير سلطان 44" },
-  { id: "17", number: "#1017", customer: "ماجد الصقر", email: "majed@example.com", phone: "+966507788990", date: "2025-07-12", items: 2, total: 680, paymentStatus: "paid", status: "delivered", source: "phone", shippingAddress: "بريدة، حي العارض، شارع الملك فهد 12" },
+  {
+    id: "1",
+    number: "#10001",
+    customer: "محمد العلي",
+    email: "mohammed@example.com",
+    phone: "+966501234567",
+    date: "2026-01-15",
+    items: 5,
+    total: 6198,
+    paymentStatus: "paid",
+    status: "completed",
+    shippingAddress: "الرياض، حي النسيم، شارع الأمير سلطان 45",
+  },
+  {
+    id: "2",
+    number: "#10002",
+    customer: "فاطمة الزهراء",
+    email: "fatima@example.com",
+    phone: "+966509876543",
+    date: "2026-01-14",
+    items: 2,
+    total: 1123,
+    paymentStatus: "paid",
+    status: "shipping",
+    shippingAddress: "جدة، حي الروضة، شارع فلسطين 12",
+  },
+  {
+    id: "3",
+    number: "#10003",
+    customer: "نورة السعيد",
+    email: "noura@example.com",
+    phone: "+966505551234",
+    date: "2026-01-13",
+    items: 8,
+    total: 5199,
+    paymentStatus: "paid",
+    status: "processing",
+    shippingAddress: "الدمام، حي الفيصلية، شارع الملك فهد 78",
+  },
+  {
+    id: "4",
+    number: "#10004",
+    customer: "خالد الشمري",
+    email: "khalid@example.com",
+    phone: "+966507778899",
+    date: "2026-01-12",
+    items: 3,
+    total: 899,
+    paymentStatus: "pending",
+    status: "review",
+  },
+  {
+    id: "5",
+    number: "#10005",
+    customer: "عبدالله الحربي",
+    email: "abdullah@example.com",
+    phone: "+966502223344",
+    date: "2026-01-11",
+    items: 1,
+    total: 249,
+    paymentStatus: "pending",
+    status: "review",
+  },
+  {
+    id: "6",
+    number: "#10006",
+    customer: "أحمد بن محمد",
+    email: "ahmed@example.com",
+    phone: "+966501112233",
+    date: "2026-01-10",
+    items: 4,
+    total: 3450,
+    paymentStatus: "paid",
+    status: "delivered",
+    shippingAddress: "الخبر، حي العليا، شارع التحلية 33",
+  },
+  {
+    id: "7",
+    number: "#10007",
+    customer: "ريم الشمري",
+    email: "reem@example.com",
+    phone: "+966503334455",
+    date: "2026-01-09",
+    items: 6,
+    total: 2100,
+    paymentStatus: "paid",
+    status: "completed",
+    shippingAddress: "القطيف، حي الصالحية، شارع الأمير سلطان 90",
+  },
+  {
+    id: "8",
+    number: "#10008",
+    customer: "ياسر القحطاني",
+    email: "yasser@example.com",
+    phone: "+966504445566",
+    date: "2026-01-08",
+    items: 2,
+    total: 780,
+    paymentStatus: "failed",
+    status: "cancelled",
+  },
+  {
+    id: "9",
+    number: "#10009",
+    customer: "هند المطيري",
+    email: "hind@example.com",
+    phone: "+966505556677",
+    date: "2026-01-07",
+    items: 7,
+    total: 4200,
+    paymentStatus: "paid",
+    status: "shipping",
+    shippingAddress: "الرياض، حي الملقا، شارع أنس بن مالك 21",
+  },
+  {
+    id: "10",
+    number: "#10010",
+    customer: "منال العنزي",
+    email: "manal@example.com",
+    phone: "+966507778811",
+    date: "2026-01-06",
+    items: 3,
+    total: 1560,
+    paymentStatus: "refunded",
+    status: "returned",
+    shippingAddress: "مكة المكرمة، حي العزيزية، شارع المسجد الحرام 100",
+  },
 ];
 
-const statusConfig: Record<OrderStatus, { label: string; variant: "warning" | "info" | "success" | "danger" | "default" | "purple" }> = {
-  review: { label: "قيد المراجعة", variant: "warning" },
-  processing: { label: "قيد التنفيذ", variant: "purple" },
-  shipping: { label: "قيد الشحن", variant: "info" },
-  delivered: { label: "تم التوصيل", variant: "success" },
-  completed: { label: "مكتمل", variant: "success" },
-  cancelled: { label: "ملغي", variant: "danger" },
-  returned: { label: "مرتجع", variant: "default" },
+const statusConfig: Record<
+  OrderStatus,
+  { label: string; variant: "warning" | "info" | "success" | "danger" | "default" | "purple"; icon: React.ReactNode }
+> = {
+  review: { label: "قيد الانتظار", variant: "warning", icon: <Clock size={14} /> },
+  processing: { label: "قيد المعالجة", variant: "purple", icon: <FileCheck size={14} /> },
+  shipping: { label: "قيد الشحن", variant: "info", icon: <Truck size={14} /> },
+  delivered: { label: "تم التوصيل", variant: "success", icon: <CheckCircle size={14} /> },
+  completed: { label: "مكتمل", variant: "success", icon: <CheckCircle size={14} /> },
+  cancelled: { label: "ملغي", variant: "danger", icon: <XCircle size={14} /> },
+  returned: { label: "مرتجع", variant: "default", icon: <RotateCcw size={14} /> },
 };
 
-const paymentConfig: Record<PaymentStatus, { label: string; variant: "success" | "warning" | "danger" | "default" }> = {
+const paymentConfig: Record<
+  PaymentStatus,
+  { label: string; variant: "success" | "warning" | "danger" | "default" }
+> = {
   paid: { label: "مدفوع", variant: "success" },
-  pending: { label: "قيد الانتظار", variant: "warning" },
+  pending: { label: "قيد الدفع", variant: "warning" },
   failed: { label: "فشل", variant: "danger" },
   refunded: { label: "مسترد", variant: "default" },
 };
 
-const sourceConfig: Record<OrderSource, { label: string }> = {
-  online: { label: "موقع إلكتروني" },
-  phone: { label: "هاتف" },
-  "walk-in": { label: "زبون مباشرة" },
-};
-
 const statusOptions = [
-  { value: "review", label: "قيد المراجعة" },
-  { value: "processing", label: "قيد التنفيذ" },
+  { value: "review", label: "قيد الانتظار" },
+  { value: "processing", label: "قيد المعالجة" },
   { value: "shipping", label: "قيد الشحن" },
   { value: "delivered", label: "تم التوصيل" },
   { value: "completed", label: "مكتمل" },
@@ -113,27 +238,40 @@ const statusOptions = [
 
 const paymentOptions = [
   { value: "paid", label: "مدفوع" },
-  { value: "pending", label: "قيد الانتظار" },
+  { value: "pending", label: "قيد الدفع" },
   { value: "failed", label: "فشل" },
   { value: "refunded", label: "مسترد" },
 ];
 
-const sourceOptions = [
-  { value: "online", label: "موقع إلكتروني" },
-  { value: "phone", label: "هاتف" },
-  { value: "walk-in", label: "زبون مباشرة" },
+const tabList = [
+  { key: "all", label: "الكل" },
+  { key: "review", label: "قيد الانتظار" },
+  { key: "processing", label: "قيد المعالجة" },
+  { key: "shipping", label: "قيد الشحن" },
+  { key: "delivered", label: "تم التوصيل" },
+  { key: "completed", label: "مكتمل" },
+  { key: "cancelled", label: "ملغي" },
+  { key: "returned", label: "مرتجع" },
 ];
 
-const tabList = [
-  { key: "all", label: "الكل", icon: <Package size={16} /> },
-  { key: "review", label: "قيد المراجعة", icon: <Clock size={16} /> },
-  { key: "processing", label: "قيد التنفيذ", icon: <FileCheck size={16} /> },
-  { key: "shipping", label: "قيد الشحن", icon: <Truck size={16} /> },
-  { key: "delivered", label: "تم التوصيل", icon: <CheckCircle size={16} /> },
-  { key: "completed", label: "مكتمل", icon: <CheckCircle size={16} /> },
-  { key: "cancelled", label: "ملغي", icon: <XCircle size={16} /> },
-  { key: "returned", label: "مرتجع", icon: <RotateCcw size={16} /> },
-];
+const stagger = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.05 },
+  },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] as const } },
+};
+
+const statusTimeline: OrderStatus[] = ["review", "processing", "shipping", "delivered", "completed"];
+
+function getTimelineIndex(status: OrderStatus): number {
+  if (status === "cancelled" || status === "returned") return -1;
+  return statusTimeline.indexOf(status);
+}
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -147,7 +285,6 @@ export default function OrdersPage() {
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [bulkStatusModal, setBulkStatusModal] = useState(false);
   const [bulkStatus, setBulkStatus] = useState<OrderStatus>("review");
-  const [showFilters, setShowFilters] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
@@ -174,13 +311,19 @@ export default function OrdersPage() {
     defaultSortDir: "desc",
   });
 
-  const handleTabChange = useCallback((tab: string) => {
-    setFilter("status", tab === "all" ? "" : tab);
-  }, [setFilter]);
+  const handleTabChange = useCallback(
+    (tab: string) => {
+      setFilter("status", tab === "all" ? "" : tab);
+    },
+    [setFilter]
+  );
 
   const handleUpdateStatus = useCallback(() => {
     if (!editOrder) return;
-    update(editOrder.id, { status: editStatus, paymentStatus: editPayment });
+    update(editOrder.id, {
+      status: editStatus,
+      paymentStatus: editPayment,
+    });
     success("تم التحديث", `تم تحديث حالة الطلب ${editOrder.number} بنجاح`);
     setEditOrder(null);
   }, [editOrder, editStatus, editPayment, update, success]);
@@ -196,30 +339,40 @@ export default function OrdersPage() {
     setNoteText("");
   }, [noteOrder, noteText, update, success, showError]);
 
-  const handlePrintInvoice = useCallback((order: Order) => {
-    success("جاري الطباعة", `جاري طباعة فاتورة الطلب ${order.number}`);
-  }, [success]);
+  const handlePrintInvoice = useCallback(
+    (order: Order) => {
+      success("جاري الطباعة", `جاري طباعة فاتورة الطلب ${order.number}`);
+    },
+    [success]
+  );
 
   const handleBulkStatusChange = useCallback(() => {
     selectedKeys.forEach((id) => {
       update(id, { status: bulkStatus });
     });
-    success("تم التحديث", `تم تحديث حالة ${selectedKeys.length} طلب بنجاح`);
+    success(
+      "تم التحديث",
+      `تم تحديث حالة ${selectedKeys.length} طلب بنجاح`
+    );
     setSelectedKeys([]);
     setBulkStatusModal(false);
   }, [selectedKeys, bulkStatus, update, success]);
 
   const handleExport = useCallback(() => {
-    const dataToExport = selectedKeys.length > 0
-      ? orders.filter((o) => selectedKeys.includes(o.id))
-      : filteredData;
+    const dataToExport =
+      selectedKeys.length > 0
+        ? orders.filter((o) => selectedKeys.includes(o.id))
+        : filteredData;
     const csv = [
-      "رقم الطلب,العميل,التاريخ,المنتجات,المجموع,حالة الدفع,حالة الطلب,المصدر",
-      ...dataToExport.map((o) =>
-        `${o.number},${o.customer},${o.date},${o.items},${o.total},${paymentConfig[o.paymentStatus].label},${statusConfig[o.status].label},${sourceConfig[o.source].label}`
+      "رقم الطلب,العميل,التاريخ,المنتجات,المجموع,حالة الدفع,حالة الطلب",
+      ...dataToExport.map(
+        (o) =>
+          `${o.number},${o.customer},${o.date},${o.items},${o.total},${paymentConfig[o.paymentStatus].label},${statusConfig[o.status].label}`
       ),
     ].join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["\uFEFF" + csv], {
+      type: "text/csv;charset=utf-8",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -229,260 +382,485 @@ export default function OrdersPage() {
     success("تم التصدير", "تم تصدير البيانات بنجاح");
   }, [selectedKeys, orders, filteredData, success]);
 
-  const totalProcessing = useMemo(() => orders.filter((o) => o.status === "processing" || o.status === "review").length, [orders]);
-  const todayRevenue = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0];
-    return orders.filter((o) => o.date === today && o.paymentStatus === "paid").reduce((s, o) => s + o.total, 0);
-  }, [orders]);
-  const avgOrder = useMemo(() => {
-    const paid = orders.filter((o) => o.paymentStatus === "paid");
-    return paid.length > 0 ? paid.reduce((s, o) => s + o.total, 0) / paid.length : 0;
-  }, [orders]);
+  const totalPending = useMemo(
+    () => orders.filter((o) => o.status === "review").length,
+    [orders]
+  );
+  const totalShipping = useMemo(
+    () => orders.filter((o) => o.status === "shipping").length,
+    [orders]
+  );
+  const totalCompleted = useMemo(
+    () =>
+      orders.filter((o) => o.status === "completed" || o.status === "delivered")
+        .length,
+    [orders]
+  );
 
-  const columns = useMemo(() => [
-    {
-      key: "number" as const,
-      label: "رقم الطلب",
-      sortable: true,
-      render: (_value: unknown, row: Order) => (
-        <button
-          onClick={(e) => { e.stopPropagation(); router.push(`/admin/orders/${row.id}`); }}
-          className="font-medium text-primary hover:underline cursor-pointer"
-        >
-          {row.number}
-        </button>
-      ),
-    },
-    {
-      key: "customer" as const,
-      label: "العميل",
-      sortable: true,
-      render: (_value: unknown, row: Order) => (
-        <div className="flex items-center gap-2">
-          <Avatar name={row.customer} size="sm" src={row.customerAvatar} />
-          <span>{row.customer}</span>
-        </div>
-      ),
-    },
-    {
-      key: "date" as const,
-      label: "التاريخ",
-      sortable: true,
-      render: (value: unknown) => formatDate(String(value)),
-    },
-    {
-      key: "items" as const,
-      label: "المنتجات",
-      sortable: true,
-      render: (value: unknown) => (
-        <Badge variant="info">{String(value)} منتج</Badge>
-      ),
-    },
-    {
-      key: "total" as const,
-      label: "المجموع",
-      sortable: true,
-      render: (value: unknown) => (
-        <span className="font-semibold">{formatCurrency(Number(value))}</span>
-      ),
-    },
-    {
-      key: "paymentStatus" as const,
-      label: "الدفع",
-      sortable: true,
-      render: (value: unknown) => {
-        const config = paymentConfig[value as PaymentStatus];
-        return <Badge variant={config.variant}>{config.label}</Badge>;
+  const columns = useMemo(
+    () => [
+      {
+        key: "number" as const,
+        label: "رقم الطلب",
+        sortable: true,
+        render: (_value: unknown, row: Order) => (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setViewOrder(row);
+            }}
+            className="font-semibold text-[#2563EB] hover:text-[#1D4ED8] cursor-pointer transition-colors"
+          >
+            {row.number}
+          </button>
+        ),
       },
-    },
-    {
-      key: "status" as const,
-      label: "الحالة",
-      sortable: true,
-      render: (value: unknown) => {
-        const config = statusConfig[value as OrderStatus];
-        return <Badge variant={config.variant} dot>{config.label}</Badge>;
+      {
+        key: "customer" as const,
+        label: "العميل",
+        sortable: true,
+        render: (_value: unknown, row: Order) => (
+          <div className="flex items-center gap-2.5">
+            <Avatar name={row.customer} size="sm" />
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-[#111827] truncate">
+                {row.customer}
+              </p>
+              <p className="text-xs text-[#9CA3AF] truncate">{row.email}</p>
+            </div>
+          </div>
+        ),
       },
-    },
-    {
-      key: "source" as const,
-      label: "المصدر",
-      sortable: true,
-      render: (value: unknown) => {
-        const config = sourceConfig[value as OrderSource];
-        return <span className="text-sm text-text-secondary">{config.label}</span>;
+      {
+        key: "status" as const,
+        label: "الحالة",
+        sortable: true,
+        render: (value: unknown) => {
+          const config = statusConfig[value as OrderStatus];
+          return (
+            <Badge variant={config.variant} dot size="sm">
+              {config.label}
+            </Badge>
+          );
+        },
       },
-    },
-    {
-      key: "actions" as const,
-      label: "الإجراءات",
-      className: "w-32",
-      render: (_value: unknown, row: Order) => (
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" icon={<Eye size={14} />} onClick={(e) => { e.stopPropagation(); router.push(`/admin/orders/${row.id}`); }} />
-          <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={(e) => {
-            e.stopPropagation();
-            setEditOrder(row);
-            setEditStatus(row.status);
-            setEditPayment(row.paymentStatus);
-          }} />
-          <Button variant="ghost" size="sm" icon={<Printer size={14} />} onClick={(e) => { e.stopPropagation(); handlePrintInvoice(row); }} />
-          <Button variant="ghost" size="sm" icon={<StickyNote size={14} />} onClick={(e) => { e.stopPropagation(); setNoteOrder(row); setNoteText(row.notes || ""); }} />
-        </div>
-      ),
-    },
-  ], [router, handlePrintInvoice]);
+      {
+        key: "paymentStatus" as const,
+        label: "الدفع",
+        sortable: true,
+        render: (value: unknown) => {
+          const config = paymentConfig[value as PaymentStatus];
+          return (
+            <Badge variant={config.variant} size="sm">
+              {config.label}
+            </Badge>
+          );
+        },
+      },
+      {
+        key: "total" as const,
+        label: "المبلغ",
+        sortable: true,
+        render: (value: unknown) => (
+          <span className="text-sm font-semibold text-[#111827]">
+            {formatCurrency(Number(value))}
+          </span>
+        ),
+      },
+      {
+        key: "date" as const,
+        label: "التاريخ",
+        sortable: true,
+        render: (value: unknown) => (
+          <span className="text-sm text-[#6B7280]">
+            {formatDate(String(value))}
+          </span>
+        ),
+      },
+      {
+        key: "actions" as const,
+        label: "",
+        className: "w-12",
+        render: (_value: unknown, row: Order) => (
+          <Dropdown
+            align="start"
+            trigger={
+              <button
+                type="button"
+                className="flex items-center justify-center h-8 w-8 rounded-lg text-[#9CA3AF] hover:text-[#111827] hover:bg-[#F3F4F6] transition-colors cursor-pointer"
+              >
+                <ChevronDown size={16} />
+              </button>
+            }
+          >
+            <DropdownItem onClick={() => setViewOrder(row)}>
+              <Eye size={14} />
+              عرض التفاصيل
+            </DropdownItem>
+            <DropdownItem
+              onClick={() => {
+                setEditOrder(row);
+                setEditStatus(row.status);
+                setEditPayment(row.paymentStatus);
+              }}
+            >
+              <Pencil size={14} />
+              تعديل الحالة
+            </DropdownItem>
+            <DropdownItem onClick={() => handlePrintInvoice(row)}>
+              <Printer size={14} />
+              طباعة الفاتورة
+            </DropdownItem>
+            <DropdownItem
+              onClick={() => {
+                setNoteOrder(row);
+                setNoteText(row.notes || "");
+              }}
+            >
+              <StickyNote size={14} />
+              ملاحظات
+            </DropdownItem>
+          </Dropdown>
+        ),
+      },
+    ],
+    [handlePrintInvoice]
+  );
 
-  const bulkActions = useMemo(() => [
-    {
-      label: "تغيير الحالة",
-      icon: <ArrowUpDown size={14} />,
-      onClick: () => setBulkStatusModal(true),
-    },
-    {
-      label: "تصدير",
-      icon: <Download size={14} />,
-      onClick: handleExport,
-    },
-  ], [handleExport]);
+  const bulkActions = useMemo(
+    () => [
+      {
+        label: "تغيير الحالة",
+        icon: <ArrowUpDown size={14} />,
+        onClick: () => setBulkStatusModal(true),
+      },
+      {
+        label: "تصدير",
+        icon: <Download size={14} />,
+        onClick: handleExport,
+      },
+    ],
+    [handleExport]
+  );
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="الطلبات"
-        subtitle="إدارة الطلبات والمبيعات"
-        actions={
-          <Button icon={<Plus size={16} />} onClick={() => router.push("/admin/orders/new")}>
-            طلب جديد
-          </Button>
-        }
-      />
+    <motion.div
+      className="space-y-6"
+      variants={stagger}
+      initial="hidden"
+      animate="show"
+    >
+      <motion.div variants={fadeUp}>
+        <PageHeader
+          title="الطلبيات"
+          subtitle="إدارة طلبيات المتجر"
+        />
+      </motion.div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<Package size={20} />} label="إجمالي الطلبات" value={totalItems.toLocaleString("ar")} change="" changeType="up" color="primary" />
-        <StatCard icon={<Clock size={20} />} label="قيد التنفيذ" value={totalProcessing.toLocaleString("ar")} change="" changeType="up" color="warning" />
-        <StatCard icon={<Banknote size={20} />} label="الإيرادات اليومية" value={formatCurrency(todayRevenue)} change="" changeType="up" color="success" />
-        <StatCard icon={<ShoppingCart size={20} />} label="متوسط الطلب" value={formatCurrency(avgOrder)} change="" changeType="up" color="info" />
-      </div>
+      <motion.div
+        className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+        variants={fadeUp}
+      >
+        <StatCard
+          icon={<Package size={20} />}
+          label="إجمالي الطلبيات"
+          value={totalItems.toLocaleString("ar")}
+          color="primary"
+        />
+        <StatCard
+          icon={<Clock size={20} />}
+          label="قيد الانتظار"
+          value={totalPending.toLocaleString("ar")}
+          color="warning"
+        />
+        <StatCard
+          icon={<Truck size={20} />}
+          label="قيد الشحن"
+          value={totalShipping.toLocaleString("ar")}
+          color="info"
+        />
+        <StatCard
+          icon={<CheckCircle size={20} />}
+          label="مكتملة"
+          value={totalCompleted.toLocaleString("ar")}
+          color="success"
+        />
+      </motion.div>
 
-      <Tabs tabs={tabList} onChange={handleTabChange}>
-        <div className="space-y-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <SearchInput placeholder="بحث برقم الطلب أو اسم العميل أو البريد..." value={search} onChange={setSearch} className="w-80" />
-            <Select
-              options={sourceOptions}
-              value={filters.source || ""}
-              onChange={(e) => setFilter("source", e.target.value)}
-            />
-            <Button variant="secondary" size="sm" icon={<Filter size={14} />} onClick={() => setShowFilters(!showFilters)}>
-              فلاتر متقدمة
-            </Button>
-            {Object.keys(filters).length > 0 && (
-              <Button variant="ghost" size="sm" onClick={() => { setSearch(""); Object.keys(filters).forEach((k) => setFilter(k, "")); }}>
-                مسح الفلاتر
-              </Button>
-            )}
-          </div>
-
-          {showFilters && (
-            <div className="flex items-end gap-3 p-4 bg-surface rounded-xl border border-border">
-              <Select
-                options={statusOptions}
-                value={filters.status || ""}
-                onChange={(e) => setFilter("status", e.target.value)}
-                label="حالة الطلب"
+      <motion.div variants={fadeUp}>
+        <Tabs tabs={tabList} onChange={handleTabChange}>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 flex-wrap">
+              <SearchInput
+                placeholder="بحث برقم الطلب أو اسم العميل..."
+                value={search}
+                onChange={setSearch}
+                className="w-80"
               />
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-40"
+                />
+                <span className="text-[#9CA3AF] text-sm">إلى</span>
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-40"
+                />
+              </div>
               <Select
                 options={paymentOptions}
                 value={filters.paymentStatus || ""}
                 onChange={(e) => setFilter("paymentStatus", e.target.value)}
-                label="حالة الدفع"
               />
-              <Input
-                label="من تاريخ"
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-              />
-              <Input
-                label="إلى تاريخ"
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-              />
+              {Object.keys(filters).length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    Object.keys(filters).forEach((k) => setFilter(k, ""));
+                  }}
+                  className="text-sm text-[#2563EB] hover:text-[#1D4ED8] transition-colors cursor-pointer"
+                >
+                  مسح الفلاتر
+                </button>
+              )}
             </div>
-          )}
 
-          <DataTable
-            columns={columns}
-            data={paginatedData}
-            emptyMessage="لا توجد طلبات"
-            selectable
-            selectedKeys={selectedKeys}
-            onSelectionChange={setSelectedKeys}
-            rowKey="id"
-            sortable
-            pagination={{
-              currentPage: page,
-              totalPages,
-              totalItems,
-              itemsPerPage: perPage,
-              onPageChange: setPage,
-              onItemsPerPageChange: setPerPage,
-            }}
-            bulkActions={bulkActions}
-            exportable
-            striped
-          />
-        </div>
-      </Tabs>
+            <DataTable
+              columns={columns}
+              data={paginatedData}
+              emptyMessage="لا توجد طلبيات"
+              selectable
+              selectedKeys={selectedKeys}
+              onSelectionChange={setSelectedKeys}
+              rowKey="id"
+              sortable
+              pagination={{
+                currentPage: page,
+                totalPages,
+                totalItems,
+                itemsPerPage: perPage,
+                onPageChange: setPage,
+                onItemsPerPageChange: setPerPage,
+              }}
+              bulkActions={bulkActions}
+              exportable
+            />
+          </div>
+        </Tabs>
+      </motion.div>
 
       {viewOrder && (
-        <Modal open onClose={() => setViewOrder(null)} title={`تفاصيل الطلب ${viewOrder.number}`} size="lg">
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-text-muted">رقم الطلب</p>
-                <p className="font-medium text-primary">{viewOrder.number}</p>
+        <Modal
+          open
+          onClose={() => setViewOrder(null)}
+          title={`الطلب ${viewOrder.number}`}
+          size="lg"
+        >
+          <div className="space-y-6">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-[#F7F8FA]">
+              <div className="flex items-center gap-3">
+                <Avatar name={viewOrder.customer} size="md" />
+                <div>
+                  <p className="font-semibold text-[#111827]">
+                    {viewOrder.customer}
+                  </p>
+                  <p className="text-sm text-[#6B7280]">{viewOrder.email}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-text-muted">العميل</p>
-                <p className="font-medium text-text">{viewOrder.customer}</p>
-              </div>
-              <div>
-                <p className="text-sm text-text-muted">التاريخ</p>
-                <p className="font-medium text-text">{formatDate(viewOrder.date)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-text-muted">المجموع</p>
-                <p className="font-semibold text-text">{formatCurrency(viewOrder.total)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-text-muted">حالة الطلب</p>
-                <Badge variant={statusConfig[viewOrder.status].variant} dot>{statusConfig[viewOrder.status].label}</Badge>
-              </div>
-              <div>
-                <p className="text-sm text-text-muted">حالة الدفع</p>
-                <Badge variant={paymentConfig[viewOrder.paymentStatus].variant}>{paymentConfig[viewOrder.paymentStatus].label}</Badge>
+              <div className="text-left">
+                <p className="text-2xl font-bold text-[#111827]">
+                  {formatCurrency(viewOrder.total)}
+                </p>
+                <Badge
+                  variant={statusConfig[viewOrder.status].variant}
+                  dot
+                  size="sm"
+                >
+                  {statusConfig[viewOrder.status].label}
+                </Badge>
               </div>
             </div>
-            <div className="flex justify-end gap-3">
-              <Button variant="secondary" onClick={() => setViewOrder(null)}>إغلاق</Button>
-              <Button onClick={() => {
-                router.push(`/admin/orders/${viewOrder.id}`);
-              }}>عرض التفاصيل</Button>
+
+            {viewOrder.status !== "cancelled" &&
+              viewOrder.status !== "returned" && (
+                <div className="px-2">
+                  <div className="flex items-center justify-between relative">
+                    <div className="absolute top-3.5 left-0 right-0 h-0.5 bg-[#E5E7EB]" />
+                    <div
+                      className="absolute top-3.5 right-0 h-0.5 bg-[#2563EB] transition-all"
+                      style={{
+                        width: `${Math.max(0, (getTimelineIndex(viewOrder.status) / (statusTimeline.length - 1)) * 100)}%`,
+                      }}
+                    />
+                    {statusTimeline.map((s, i) => {
+                      const idx = getTimelineIndex(viewOrder.status);
+                      const isActive = i <= idx;
+                      const isCurrent = i === idx;
+                      return (
+                        <div
+                          key={s}
+                          className="relative z-10 flex flex-col items-center"
+                        >
+                          <div
+                            className={cn(
+                              "h-7 w-7 rounded-full flex items-center justify-center border-2 transition-colors",
+                              isCurrent
+                                ? "bg-[#2563EB] border-[#2563EB] text-white"
+                                : isActive
+                                  ? "bg-[#EFF6FF] border-[#2563EB] text-[#2563EB]"
+                                  : "bg-[#F7F8FA] border-[#E5E7EB] text-[#9CA3AF]"
+                            )}
+                          >
+                            {statusConfig[s].icon}
+                          </div>
+                          <span
+                            className={cn(
+                              "text-[10px] mt-1.5 font-medium whitespace-nowrap",
+                              isCurrent
+                                ? "text-[#2563EB]"
+                                : isActive
+                                  ? "text-[#111827]"
+                                  : "text-[#9CA3AF]"
+                            )}
+                          >
+                            {statusConfig[s].label}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="flex items-start gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-[#EFF6FF] flex items-center justify-center shrink-0 mt-0.5">
+                  <Calendar size={14} className="text-[#2563EB]" />
+                </div>
+                <div>
+                  <p className="text-xs text-[#9CA3AF]">التاريخ</p>
+                  <p className="text-sm font-medium text-[#111827]">
+                    {formatDate(viewOrder.date)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-[#F0FDF4] flex items-center justify-center shrink-0 mt-0.5">
+                  <CreditCard size={14} className="text-[#16A34A]" />
+                </div>
+                <div>
+                  <p className="text-xs text-[#9CA3AF]">الدفع</p>
+                  <Badge
+                    variant={paymentConfig[viewOrder.paymentStatus].variant}
+                    size="sm"
+                  >
+                    {paymentConfig[viewOrder.paymentStatus].label}
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-[#FFFBEB] flex items-center justify-center shrink-0 mt-0.5">
+                  <ShoppingCart size={14} className="text-[#F59E0B]" />
+                </div>
+                <div>
+                  <p className="text-xs text-[#9CA3AF]">المنتجات</p>
+                  <p className="text-sm font-medium text-[#111827]">
+                    {viewOrder.items} منتج
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-[#F3F4F6] flex items-center justify-center shrink-0 mt-0.5">
+                  <Phone size={14} className="text-[#6B7280]" />
+                </div>
+                <div>
+                  <p className="text-xs text-[#9CA3AF]">الهاتف</p>
+                  <p className="text-sm font-medium text-[#111827]" dir="ltr">
+                    {viewOrder.phone}
+                  </p>
+                </div>
+              </div>
+              {viewOrder.shippingAddress && (
+                <div className="flex items-start gap-2.5 sm:col-span-2">
+                  <div className="h-8 w-8 rounded-lg bg-[#FEF2F2] flex items-center justify-center shrink-0 mt-0.5">
+                    <MapPin size={14} className="text-[#DC2626]" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-[#9CA3AF]">عنوان التوصيل</p>
+                    <p className="text-sm font-medium text-[#111827]">
+                      {viewOrder.shippingAddress}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {viewOrder.notes && (
+              <div className="p-3 rounded-lg bg-[#FFFBEB] border border-[#F59E0B]/20">
+                <p className="text-xs text-[#9CA3AF] mb-1">ملاحظات</p>
+                <p className="text-sm text-[#111827]">{viewOrder.notes}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-[#E5E7EB]">
+              <Button
+                variant="secondary"
+                onClick={() => setViewOrder(null)}
+              >
+                إغلاق
+              </Button>
+              <Button
+                variant="primary"
+                icon={<Pencil size={14} />}
+                onClick={() => {
+                  setViewOrder(null);
+                  setEditOrder(viewOrder);
+                  setEditStatus(viewOrder.status);
+                  setEditPayment(viewOrder.paymentStatus);
+                }}
+              >
+                تعديل الحالة
+              </Button>
             </div>
           </div>
         </Modal>
       )}
 
       {editOrder && (
-        <Modal open onClose={() => setEditOrder(null)} title={`تعديل الطلب ${editOrder.number}`} size="md">
+        <Modal
+          open
+          onClose={() => setEditOrder(null)}
+          title={`تعديل الطلب ${editOrder.number}`}
+          size="md"
+        >
           <div className="space-y-4">
-            <Select label="حالة الطلب" options={statusOptions} value={editStatus} onChange={(e) => setEditStatus(e.target.value as OrderStatus)} />
-            <Select label="حالة الدفع" options={paymentOptions} value={editPayment} onChange={(e) => setEditPayment(e.target.value as PaymentStatus)} />
-            <div className="flex justify-end gap-3">
-              <Button variant="secondary" onClick={() => setEditOrder(null)}>إلغاء</Button>
+            <Select
+              label="حالة الطلب"
+              options={statusOptions}
+              value={editStatus}
+              onChange={(e) => setEditStatus(e.target.value as OrderStatus)}
+            />
+            <Select
+              label="حالة الدفع"
+              options={paymentOptions}
+              value={editPayment}
+              onChange={(e) =>
+                setEditPayment(e.target.value as PaymentStatus)
+              }
+            />
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="secondary"
+                onClick={() => setEditOrder(null)}
+              >
+                إلغاء
+              </Button>
               <Button onClick={handleUpdateStatus}>حفظ التعديلات</Button>
             </div>
           </div>
@@ -490,11 +868,33 @@ export default function OrdersPage() {
       )}
 
       {noteOrder && (
-        <Modal open onClose={() => { setNoteOrder(null); setNoteText(""); }} title={`ملاحظات الطلب ${noteOrder.number}`} size="md">
+        <Modal
+          open
+          onClose={() => {
+            setNoteOrder(null);
+            setNoteText("");
+          }}
+          title={`ملاحظات الطلب ${noteOrder.number}`}
+          size="md"
+        >
           <div className="space-y-4">
-            <Textarea label="الملاحظة" value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="أدخل ملاحظة للطلب..." rows={4} />
+            <Textarea
+              label="الملاحظة"
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              placeholder="أدخل ملاحظة للطلب..."
+              rows={4}
+            />
             <div className="flex justify-end gap-3">
-              <Button variant="secondary" onClick={() => { setNoteOrder(null); setNoteText(""); }}>إلغاء</Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setNoteOrder(null);
+                  setNoteText("");
+                }}
+              >
+                إلغاء
+              </Button>
               <Button onClick={handleAddNote}>حفظ الملاحظة</Button>
             </div>
           </div>
@@ -502,17 +902,36 @@ export default function OrdersPage() {
       )}
 
       {bulkStatusModal && (
-        <Modal open onClose={() => setBulkStatusModal(false)} title="تغيير حالة الطلبات" size="md">
+        <Modal
+          open
+          onClose={() => setBulkStatusModal(false)}
+          title="تغيير حالة الطلبيات"
+          size="md"
+        >
           <div className="space-y-4">
-            <p className="text-sm text-text-secondary">تغيير حالة {selectedKeys.length} محدد</p>
-            <Select label="الحالة الجديدة" options={statusOptions} value={bulkStatus} onChange={(e) => setBulkStatus(e.target.value as OrderStatus)} />
+            <p className="text-sm text-[#6B7280]">
+              تغيير حالة {selectedKeys.length} محدد
+            </p>
+            <Select
+              label="الحالة الجديدة"
+              options={statusOptions}
+              value={bulkStatus}
+              onChange={(e) =>
+                setBulkStatus(e.target.value as OrderStatus)
+              }
+            />
             <div className="flex justify-end gap-3">
-              <Button variant="secondary" onClick={() => setBulkStatusModal(false)}>إلغاء</Button>
+              <Button
+                variant="secondary"
+                onClick={() => setBulkStatusModal(false)}
+              >
+                إلغاء
+              </Button>
               <Button onClick={handleBulkStatusChange}>تغيير الحالة</Button>
             </div>
           </div>
         </Modal>
       )}
-    </div>
+    </motion.div>
   );
 }

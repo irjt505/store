@@ -6,9 +6,7 @@ export function createClient() {
   if (client) return client;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) {
-    throw new Error("Supabase environment variables are not configured");
-  }
+  if (!url || !key) return null as unknown as ReturnType<typeof createBrowserClient>;
   client = createBrowserClient(url, key);
   return client;
 }

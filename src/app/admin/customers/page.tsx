@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { motion } from "framer-motion";
 import {
   Users,
   UserPlus,
@@ -9,10 +10,20 @@ import {
   Eye,
   Pencil,
   Trash2,
-  Filter,
   Download,
+  MoreHorizontal,
+  Ban,
+  CheckCircle,
+  MapPin,
+  ShoppingBag,
+  DollarSign,
+  Mail,
+  Phone,
+  Calendar,
+  FileText,
+  Shield,
+  ShieldOff,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -23,6 +34,7 @@ import { Select } from "@/components/ui/Select";
 import { Avatar } from "@/components/ui/Avatar";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
+import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { useCrud } from "@/lib/hooks/useCrud";
@@ -41,28 +53,85 @@ type Customer = {
   joinDate: string;
   status: CustomerStatus;
   city: string;
-  tags: string[];
+  country: string;
+  notes: string;
 };
 
 const mockCustomers: Customer[] = [
-  { id: "1", name: "أحمد بن محمد", email: "ahmed@example.com", phone: "+966501234567", orders: 18, totalSpent: 12450, lastOrderDate: "2025-07-20", joinDate: "2023-06-15", status: "active", city: "الرياض", tags: ["VIP", "oyal"] },
-  { id: "2", name: "سارة العلي", email: "sara@example.com", phone: "+966509876543", orders: 12, totalSpent: 8900, lastOrderDate: "2025-07-19", joinDate: "2023-08-22", status: "active", city: "جدة", tags: ["oyal"] },
-  { id: "3", name: "محمد الفهد", email: "mohammed@example.com", phone: "+966505551234", orders: 5, totalSpent: 3200, lastOrderDate: "2025-07-15", joinDate: "2023-03-10", status: "active", city: "الدمام", tags: [] },
-  { id: "4", name: "فاطمة الزهراء", email: "fatima@example.com", phone: "+966507778899", orders: 24, totalSpent: 15600, lastOrderDate: "2025-07-18", joinDate: "2022-11-05", status: "active", city: "الرياض", tags: ["VIP", "oyal", "عضو ذهبي"] },
-  { id: "5", name: "خالد العمري", email: "khalid@example.com", phone: "+966502223344", orders: 1, totalSpent: 750, lastOrderDate: "2025-07-10", joinDate: "2024-01-08", status: "blocked", city: "الخبر", tags: [] },
-  { id: "6", name: "نورة السعيد", email: "noura@example.com", phone: "+966504445566", orders: 7, totalSpent: 4100, lastOrderDate: "2025-07-17", joinDate: "2023-09-18", status: "active", city: "مكة المكرمة", tags: ["oyal"] },
-  { id: "7", name: "عبدالله الحربي", email: "abdullah@example.com", phone: "+966506667788", orders: 2, totalSpent: 680, lastOrderDate: "2025-06-30", joinDate: "2022-05-20", status: "active", city: "المدينة المنورة", tags: [] },
-  { id: "8", name: "ريم الشمري", email: "reem@example.com", phone: "+966508889900", orders: 4, totalSpent: 2100, lastOrderDate: "2025-07-16", joinDate: "2023-12-01", status: "active", city: "القطيف", tags: [] },
-  { id: "9", name: "ياسر القحطاني", email: "yasser@example.com", phone: "+966501112233", orders: 3, totalSpent: 1850, lastOrderDate: "2025-07-14", joinDate: "2024-02-15", status: "active", city: "الظهران", tags: ["oyal"] },
-  { id: "10", name: "هند المطيري", email: "hind@example.com", phone: "+966503334455", orders: 9, totalSpent: 6200, lastOrderDate: "2025-07-19", joinDate: "2023-07-20", status: "active", city: "الرياض", tags: ["VIP"] },
-  { id: "11", name: "منال العنزي", email: "manal@example.com", phone: "+966507778811", orders: 6, totalSpent: 4500, lastOrderDate: "2025-07-18", joinDate: "2023-10-05", status: "active", city: "مكة المكرمة", tags: ["oyal"] },
-  { id: "12", name: "طارق البكري", email: "tariq@example.com", phone: "+966509990011", orders: 1, totalSpent: 350, lastOrderDate: "2025-07-12", joinDate: "2025-01-10", status: "active", city: "أبها", tags: [] },
-  { id: "13", name: "دانة السويلم", email: "dana@example.com", phone: "+966501122334", orders: 11, totalSpent: 7800, lastOrderDate: "2025-07-20", joinDate: "2023-05-12", status: "active", city: "الرياض", tags: ["VIP", "oyal"] },
-  { id: "14", name: "حسن الجابري", email: "hassan@example.com", phone: "+966505566778", orders: 2, totalSpent: 950, lastOrderDate: "2025-07-08", joinDate: "2024-06-01", status: "blocked", city: "بريدة", tags: [] },
+  {
+    id: "1",
+    name: "محمدмыш",
+    email: "mohammed@example.com",
+    phone: "+966501234567",
+    orders: 8,
+    totalSpent: 4250,
+    lastOrderDate: "2025-07-20",
+    joinDate: "2024-01-15",
+    status: "active",
+    city: "الرياض",
+    country: "السعودية",
+    notes: "عميل مميز يفضل المنتجات الإلكترونية",
+  },
+  {
+    id: "2",
+    name: "فاطمة الزهراء",
+    email: "fatima@example.com",
+    phone: "+966509876543",
+    orders: 5,
+    totalSpent: 1890,
+    lastOrderDate: "2025-07-19",
+    joinDate: "2024-03-22",
+    status: "active",
+    city: "جدة",
+    country: "السعودية",
+    notes: "",
+  },
+  {
+    id: "3",
+    name: "خالد الشمري",
+    email: "khalid@example.com",
+    phone: "+966551122334",
+    orders: 3,
+    totalSpent: 980,
+    lastOrderDate: "2025-07-15",
+    joinDate: "2024-06-10",
+    status: "active",
+    city: "الدمام",
+    country: "السعودية",
+    notes: "يطلب بشكل دوري كل شهر",
+  },
+  {
+    id: "4",
+    name: "نورة السعيد",
+    email: "noura@example.com",
+    phone: "+966567788990",
+    orders: 12,
+    totalSpent: 8750,
+    lastOrderDate: "2025-07-20",
+    joinDate: "2023-09-18",
+    status: "active",
+    city: "مكة المكرمة",
+    country: "السعودية",
+    notes: "من أكثر العملاء نشاطاً",
+  },
+  {
+    id: "5",
+    name: "عبدالله الحربي",
+    email: "abdullah@example.com",
+    phone: "+966544455667",
+    orders: 1,
+    totalSpent: 150,
+    lastOrderDate: "2025-06-30",
+    joinDate: "2024-05-20",
+    status: "blocked",
+    city: "المدينة المنورة",
+    country: "السعودية",
+    notes: "تم حظر الحسابdue to suspicious activity",
+  },
 ];
 
 const statusFilterOptions = [
-  { value: "", label: "جميع العملاء" },
+  { value: "", label: "الكل" },
   { value: "active", label: "نشط" },
   { value: "blocked", label: "محظور" },
 ];
@@ -74,28 +143,48 @@ const cityOptions = [
   { value: "الدمام", label: "الدمام" },
   { value: "مكة المكرمة", label: "مكة المكرمة" },
   { value: "المدينة المنورة", label: "المدينة المنورة" },
-  { value: "الخبر", label: "الخبر" },
-  { value: "القطيف", label: "القطيف" },
-  { value: "الظهران", label: "الظهران" },
-  { value: "أبها", label: "أبها" },
-  { value: "بريدة", label: "بريدة" },
 ];
 
+const countryOptions = [
+  { value: "السعودية", label: "السعودية" },
+  { value: "الإمارات", label: "الإمارات" },
+  { value: "الكويت", label: "الكويت" },
+  { value: "قطر", label: "قطر" },
+  { value: "البحرين", label: "البحرين" },
+  { value: "عُمان", label: "عُمان" },
+  { value: "مصر", label: "مصر" },
+  { value: "الأردن", label: "الأردن" },
+];
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.06 },
+  },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0 },
+};
+
 export default function CustomersPage() {
-  const router = useRouter();
   const { success, error: showError } = useToast();
   const [viewCustomer, setViewCustomer] = useState<Customer | null>(null);
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
+  const [blockTarget, setBlockTarget] = useState<Customer | null>(null);
   const [addModal, setAddModal] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const [actionsMenu, setActionsMenu] = useState<string | null>(null);
+
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formCity, setFormCity] = useState("");
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
-  const [showFilters, setShowFilters] = useState(false);
-  const [minSpent, setMinSpent] = useState("");
-  const [maxSpent, setMaxSpent] = useState("");
+  const [formCountry, setFormCountry] = useState("السعودية");
+  const [formStatus, setFormStatus] = useState<CustomerStatus>("active");
 
   const {
     data: customers,
@@ -117,36 +206,47 @@ export default function CustomersPage() {
     totalPages,
   } = useCrud<Customer>({
     initialData: mockCustomers,
-    searchFields: ["name", "email", "phone"],
+    searchFields: ["name", "email", "phone", "city"],
     itemsPerPage: 10,
     defaultSortKey: "joinDate",
     defaultSortDir: "desc",
   });
 
-  const totalBlocked = useMemo(() => customers.filter((c) => c.status === "blocked").length, [customers]);
-  const totalRevenue = useMemo(() => customers.reduce((s, c) => s + c.totalSpent, 0), [customers]);
-  const newThisMonth = useMemo(() => {
-    const now = new Date();
-    return customers.filter((c) => {
-      const d = new Date(c.joinDate);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).length;
-  }, [customers]);
+  const totalActive = useMemo(
+    () => customers.filter((c) => c.status === "active").length,
+    [customers]
+  );
+  const totalBlocked = useMemo(
+    () => customers.filter((c) => c.status === "blocked").length,
+    [customers]
+  );
+  const totalRevenue = useMemo(
+    () => customers.reduce((s, c) => s + c.totalSpent, 0),
+    [customers]
+  );
 
-  const openAdd = useCallback(() => {
+  const resetForm = useCallback(() => {
     setFormName("");
     setFormEmail("");
     setFormPhone("");
     setFormCity("");
-    setAddModal(true);
+    setFormCountry("السعودية");
+    setFormStatus("active");
   }, []);
 
+  const openAdd = useCallback(() => {
+    resetForm();
+    setAddModal(true);
+  }, [resetForm]);
+
   const openEdit = useCallback((customer: Customer) => {
-    setEditCustomer(customer);
     setFormName(customer.name);
     setFormEmail(customer.email);
     setFormPhone(customer.phone);
     setFormCity(customer.city);
+    setFormCountry(customer.country);
+    setFormStatus(customer.status);
+    setEditCustomer(customer);
   }, []);
 
   const handleSave = useCallback(() => {
@@ -155,7 +255,14 @@ export default function CustomersPage() {
       return;
     }
     if (editCustomer) {
-      update(editCustomer.id, { name: formName, email: formEmail, phone: formPhone, city: formCity });
+      update(editCustomer.id, {
+        name: formName,
+        email: formEmail,
+        phone: formPhone,
+        city: formCity,
+        country: formCountry,
+        status: formStatus,
+      });
       success("تم التحديث", `تم تحديث بيانات "${formName}" بنجاح`);
       setEditCustomer(null);
     } else {
@@ -168,18 +275,29 @@ export default function CustomersPage() {
         totalSpent: 0,
         lastOrderDate: "",
         joinDate: new Date().toISOString().split("T")[0],
-        status: "active",
+        status: formStatus,
         city: formCity,
-        tags: [],
+        country: formCountry,
+        notes: "",
       });
       success("تمت الإضافة", `تم إضافة العميل "${formName}" بنجاح`);
       setAddModal(false);
     }
-    setFormName("");
-    setFormEmail("");
-    setFormPhone("");
-    setFormCity("");
-  }, [formName, formEmail, formPhone, formCity, editCustomer, add, update, success, showError]);
+    resetForm();
+  }, [
+    formName,
+    formEmail,
+    formPhone,
+    formCity,
+    formCountry,
+    formStatus,
+    editCustomer,
+    add,
+    update,
+    success,
+    showError,
+    resetForm,
+  ]);
 
   const handleDelete = useCallback(() => {
     if (!deleteTarget) return;
@@ -188,26 +306,46 @@ export default function CustomersPage() {
     setDeleteTarget(null);
   }, [deleteTarget, remove, success]);
 
+  const handleToggleBlock = useCallback(() => {
+    if (!blockTarget) return;
+    const newStatus: CustomerStatus =
+      blockTarget.status === "active" ? "blocked" : "active";
+    update(blockTarget.id, { status: newStatus });
+    success(
+      "تم التغيير",
+      `تم ${newStatus === "active" ? "إلغاء حظر" : "حظر"} حساب "${blockTarget.name}"`
+    );
+    setBlockTarget(null);
+  }, [blockTarget, update, success]);
+
   const handleBulkDelete = useCallback(() => {
     removeMany(selectedKeys);
     success("تم الحذف", `تم حذف ${selectedKeys.length} عميل بنجاح`);
     setSelectedKeys([]);
   }, [selectedKeys, removeMany, success]);
 
-  const handleToggleStatus = useCallback((customer: Customer) => {
-    const newStatus = customer.status === "active" ? "blocked" : "active";
-    update(customer.id, { status: newStatus });
-    success("تم التغيير", `تم ${newStatus === "active" ? "تفعيل" : "حظ"} حساب "${customer.name}"`);
-  }, [update, success]);
+  const handleBulkBlock = useCallback(() => {
+    selectedKeys.forEach((id) => update(id, { status: "blocked" }));
+    success("تم الحظر", `تم حظر ${selectedKeys.length} عميل`);
+    setSelectedKeys([]);
+  }, [selectedKeys, update, success]);
+
+  const handleBulkUnblock = useCallback(() => {
+    selectedKeys.forEach((id) => update(id, { status: "active" }));
+    success("تم الإلغاء", `تم إلغاء حظر ${selectedKeys.length} عميل`);
+    setSelectedKeys([]);
+  }, [selectedKeys, update, success]);
 
   const handleExport = useCallback(() => {
-    const dataToExport = selectedKeys.length > 0
-      ? customers.filter((c) => selectedKeys.includes(c.id))
-      : filteredData;
+    const dataToExport =
+      selectedKeys.length > 0
+        ? customers.filter((c) => selectedKeys.includes(c.id))
+        : filteredData;
     const csv = [
-      "الاسم,البريد الإلكتروني,الهاتف,المدينة,عدد الطلبات,إجمالي المشتريات,تاريخ الانضمام,الحالة",
-      ...dataToExport.map((c) =>
-        `${c.name},${c.email},${c.phone},${c.city},${c.orders},${c.totalSpent},${c.joinDate},${c.status === "active" ? "نشط" : "محظور"}`
+      "الاسم,البريد الإلكتروني,الهاتف,المدينة,الدولة,عدد الطلبات,إجمالي المشتريات,تاريخ الانضمام,الحالة",
+      ...dataToExport.map(
+        (c) =>
+          `${c.name},${c.email},${c.phone},${c.city},${c.country},${c.orders},${c.totalSpent},${c.joinDate},${c.status === "active" ? "نشط" : "محظور"}`
       ),
     ].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
@@ -220,109 +358,253 @@ export default function CustomersPage() {
     success("تم التصدير", "تم تصدير بيانات العملاء بنجاح");
   }, [selectedKeys, customers, filteredData, success]);
 
-  const columns = useMemo(() => [
-    {
-      key: "name" as const,
-      label: "العميل",
-      sortable: true,
-      render: (_value: unknown, row: Customer) => (
-        <div className="flex items-center gap-3">
-          <Avatar name={row.name} size="md" />
-          <div>
-            <p className="font-medium text-text">{row.name}</p>
-            <p className="text-xs text-text-muted">{row.email}</p>
+  const columns = useMemo(
+    () => [
+      {
+        key: "name" as const,
+        label: "العميل",
+        sortable: true,
+        render: (_value: unknown, row: Customer) => (
+          <div className="flex items-center gap-3">
+            <Avatar name={row.name} size="md" />
+            <div className="min-w-0">
+              <p className="font-medium text-text truncate">{row.name}</p>
+              <p className="text-xs text-text-muted truncate" dir="ltr">
+                {row.email}
+              </p>
+            </div>
           </div>
-        </div>
-      ),
-    },
-    { key: "phone" as const, label: "الهاتف", sortable: true },
-    { key: "city" as const, label: "المدينة", sortable: true },
-    {
-      key: "orders" as const,
-      label: "الطلبات",
-      sortable: true,
-      render: (value: unknown) => (
-        <Badge variant="info">{String(value)} طلب</Badge>
-      ),
-    },
-    {
-      key: "totalSpent" as const,
-      label: "إجمالي المشتريات",
-      sortable: true,
-      render: (value: unknown) => (
-        <span className="font-semibold">{formatCurrency(Number(value))}</span>
-      ),
-    },
-    {
-      key: "lastOrderDate" as const,
-      label: "آخر طلب",
-      sortable: true,
-      render: (value: unknown) => value ? formatDate(String(value)) : <span className="text-text-muted">—</span>,
-    },
-    {
-      key: "joinDate" as const,
-      label: "تاريخ الانضمام",
-      sortable: true,
-      render: (value: unknown) => formatDate(String(value)),
-    },
-    {
-      key: "status" as const,
-      label: "الحالة",
-      sortable: true,
-      render: (value: unknown, row: Customer) => (
-        <button onClick={(e) => { e.stopPropagation(); handleToggleStatus(row); }} className="cursor-pointer">
-          {value === "active"
-            ? <Badge variant="success" dot>نشط</Badge>
-            : <Badge variant="danger" dot>محظور</Badge>
-          }
-        </button>
-      ),
-    },
-    {
-      key: "actions" as const,
-      label: "الإجراءات",
-      className: "w-28",
-      render: (_value: unknown, row: Customer) => (
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" icon={<Eye size={14} />} onClick={(e) => { e.stopPropagation(); router.push(`/admin/customers/${row.id}`); }} />
-          <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={(e) => { e.stopPropagation(); openEdit(row); }} />
-          <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} className="text-danger hover:text-danger" onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
-        </div>
-      ),
-    },
-  ], [handleToggleStatus, openEdit, router]);
+        ),
+      },
+      {
+        key: "phone" as const,
+        label: "الهاتف",
+        sortable: true,
+        render: (value: unknown) => (
+          <span className="text-sm" dir="ltr">
+            {String(value)}
+          </span>
+        ),
+      },
+      {
+        key: "city" as const,
+        label: "المدينة",
+        sortable: true,
+        render: (value: unknown) => (
+          <span className="text-sm">{String(value)}</span>
+        ),
+      },
+      {
+        key: "orders" as const,
+        label: "الطلبات",
+        sortable: true,
+        render: (value: unknown) => (
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-text">
+            <ShoppingBag size={14} className="text-text-muted" />
+            {String(value)}
+          </span>
+        ),
+      },
+      {
+        key: "totalSpent" as const,
+        label: "الإنفاق",
+        sortable: true,
+        render: (value: unknown) => (
+          <span className="text-sm font-semibold text-text">
+            {formatCurrency(Number(value))}
+          </span>
+        ),
+      },
+      {
+        key: "status" as const,
+        label: "الحالة",
+        sortable: true,
+        render: (value: unknown) =>
+          value === "active" ? (
+            <Badge variant="success" dot size="sm">
+              نشط
+            </Badge>
+          ) : (
+            <Badge variant="danger" dot size="sm">
+              محظور
+            </Badge>
+          ),
+      },
+      {
+        key: "actions" as const,
+        label: "الإجراءات",
+        className: "w-12",
+        render: (_value: unknown, row: Customer) => (
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="sm"
+              icon={<MoreHorizontal size={16} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                setActionsMenu(actionsMenu === row.id ? null : row.id);
+              }}
+            />
+            {actionsMenu === row.id && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setActionsMenu(null)}
+                />
+                <div className="absolute left-0 top-full mt-1 z-20 bg-surface border border-border rounded-xl shadow-lg py-1 min-w-[180px]">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setViewCustomer(row);
+                      setActionsMenu(null);
+                    }}
+                    className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-text hover:bg-surface-hover transition-colors"
+                  >
+                    <Eye size={14} className="text-text-muted" />
+                    عرض التفاصيل
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEdit(row);
+                      setActionsMenu(null);
+                    }}
+                    className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-text hover:bg-surface-hover transition-colors"
+                  >
+                    <Pencil size={14} className="text-text-muted" />
+                    تعديل
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setBlockTarget(row);
+                      setActionsMenu(null);
+                    }}
+                    className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:bg-surface-hover transition-colors"
+                  >
+                    {row.status === "active" ? (
+                      <>
+                        <Ban size={14} className="text-warning" />
+                        <span className="text-warning">حظر</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={14} className="text-success" />
+                        <span className="text-success">إلغاء الحظر</span>
+                      </>
+                    )}
+                  </button>
+                  <div className="border-t border-border my-1" />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteTarget(row);
+                      setActionsMenu(null);
+                    }}
+                    className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-danger hover:bg-danger-light transition-colors"
+                  >
+                    <Trash2 size={14} />
+                    حذف
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        ),
+      },
+    ],
+    [actionsMenu, openEdit]
+  );
 
-  const bulkActions = useMemo(() => [
-    {
-      label: "حذف",
-      icon: <Trash2 size={14} />,
-      onClick: handleBulkDelete,
-      variant: "danger" as const,
-    },
-    {
-      label: "تصدير",
-      icon: <Download size={14} />,
-      onClick: handleExport,
-    },
-  ], [handleBulkDelete, handleExport]);
+  const bulkActions = useMemo(
+    () => [
+      {
+        label: "حذف",
+        icon: <Trash2 size={14} />,
+        onClick: handleBulkDelete,
+        variant: "danger" as const,
+      },
+      {
+        label: "حظر",
+        icon: <Ban size={14} />,
+        onClick: handleBulkBlock,
+      },
+      {
+        label: "إلغاء الحظر",
+        icon: <CheckCircle size={14} />,
+        onClick: handleBulkUnblock,
+      },
+      {
+        label: "تصدير",
+        icon: <Download size={14} />,
+        onClick: handleExport,
+      },
+    ],
+    [handleBulkDelete, handleBulkBlock, handleBulkUnblock, handleExport]
+  );
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="العملاء"
-        subtitle="إدارة حسابات العملاء"
-        actions={<Button icon={<UserPlus size={16} />} onClick={openAdd}>إضافة عميل</Button>}
-      />
+    <motion.div
+      className="space-y-6"
+      variants={container}
+      initial="hidden"
+      animate="show"
+    >
+      <motion.div variants={item}>
+        <PageHeader
+          title="العملاء"
+          subtitle="إدارة عملاء المتجر"
+          actions={
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" icon={<Download size={16} />} onClick={handleExport}>
+                تصدير
+              </Button>
+              <Button icon={<UserPlus size={16} />} onClick={openAdd}>
+                إضافة عميل
+              </Button>
+            </div>
+          }
+        />
+      </motion.div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<Users size={20} />} label="إجمالي العملاء" value={totalItems.toLocaleString("ar")} change="" changeType="up" color="primary" />
-        <StatCard icon={<UserPlus size={20} />} label="عملاء جدد هذا الشهر" value={String(newThisMonth)} change="" changeType="up" color="success" />
-        <StatCard icon={<UserCheck size={20} />} label="إجمالي المشتريات" value={formatCurrency(totalRevenue)} change="" changeType="up" color="info" />
-        <StatCard icon={<UserX size={20} />} label="محظورين" value={String(totalBlocked)} change="" changeType="down" color="warning" />
-      </div>
+      <motion.div variants={item} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          icon={<Users size={20} />}
+          label="إجمالي العملاء"
+          value={totalItems.toLocaleString("ar")}
+          color="primary"
+        />
+        <StatCard
+          icon={<UserCheck size={20} />}
+          label="نشط"
+          value={totalActive.toLocaleString("ar")}
+          color="success"
+        />
+        <StatCard
+          icon={<UserX size={20} />}
+          label="محظور"
+          value={totalBlocked.toLocaleString("ar")}
+          color="danger"
+        />
+        <StatCard
+          icon={<DollarSign size={20} />}
+          label="إجمالي الإنفاق"
+          value={formatCurrency(totalRevenue)}
+          color="info"
+        />
+      </motion.div>
 
-      <div className="flex items-center gap-3 flex-wrap">
-        <SearchInput placeholder="بحث بالاسم أو البريد الإلكتروني أو الهاتف..." value={search} onChange={setSearch} className="w-80" />
+      <motion.div variants={item} className="flex items-center gap-3 flex-wrap">
+        <SearchInput
+          placeholder="بحث بالاسم أو البريد أو الهاتف..."
+          value={search}
+          onChange={setSearch}
+          className="w-80"
+        />
         <Select
           options={statusFilterOptions}
           value={filters.status || ""}
@@ -333,44 +615,44 @@ export default function CustomersPage() {
           value={filters.city || ""}
           onChange={(e) => setFilter("city", e.target.value)}
         />
-        <Button variant="secondary" size="sm" icon={<Filter size={14} />} onClick={() => setShowFilters(!showFilters)}>
-          فلاتر متقدمة
-        </Button>
-        {(Object.keys(filters).length > 0 || minSpent || maxSpent) && (
-          <Button variant="ghost" size="sm" onClick={() => { setSearch(""); Object.keys(filters).forEach((k) => setFilter(k, "")); setMinSpent(""); setMaxSpent(""); }}>
+        {(search || Object.keys(filters).length > 0) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSearch("");
+              Object.keys(filters).forEach((k) => setFilter(k, ""));
+            }}
+          >
             مسح الفلاتر
           </Button>
         )}
-      </div>
+      </motion.div>
 
-      {showFilters && (
-        <div className="flex items-end gap-3 p-4 bg-surface rounded-xl border border-border">
-          <Input label="الحد الأدنى للمشتريات" type="number" value={minSpent} onChange={(e) => setMinSpent(e.target.value)} placeholder="0" />
-          <Input label="الحد الأعلى للمشتريات" type="number" value={maxSpent} onChange={(e) => setMaxSpent(e.target.value)} placeholder="100000" />
-        </div>
-      )}
-
-      <DataTable
-        columns={columns}
-        data={paginatedData}
-        emptyMessage="لا يوجد عملاء"
-        selectable
-        selectedKeys={selectedKeys}
-        onSelectionChange={setSelectedKeys}
-        rowKey="id"
-        sortable
-        pagination={{
-          currentPage: page,
-          totalPages,
-          totalItems,
-          itemsPerPage: perPage,
-          onPageChange: setPage,
-          onItemsPerPageChange: setPerPage,
-        }}
-        bulkActions={bulkActions}
-        exportable
-        striped
-      />
+      <motion.div variants={item}>
+        <Card padding="none">
+          <DataTable
+            columns={columns}
+            data={paginatedData}
+            emptyMessage="لا يوجد عملاء"
+            selectable
+            selectedKeys={selectedKeys}
+            onSelectionChange={setSelectedKeys}
+            rowKey="id"
+            sortable
+            pagination={{
+              currentPage: page,
+              totalPages,
+              totalItems,
+              itemsPerPage: perPage,
+              onPageChange: setPage,
+              onItemsPerPageChange: setPerPage,
+            }}
+            bulkActions={bulkActions}
+            exportable
+          />
+        </Card>
+      </motion.div>
 
       <ConfirmDialog
         open={!!deleteTarget}
@@ -383,58 +665,245 @@ export default function CustomersPage() {
         variant="danger"
       />
 
+      <ConfirmDialog
+        open={!!blockTarget}
+        onClose={() => setBlockTarget(null)}
+        onConfirm={handleToggleBlock}
+        title={blockTarget?.status === "active" ? "حظر العميل" : "إلغاء حظر العميل"}
+        message={
+          blockTarget?.status === "active"
+            ? `هل أنت متأكد من حظر "${blockTarget?.name}"؟ لن يتمكن من تسجيل الدخول أو إجراء طلبات.`
+            : `هل أنت متأكد من إلغاء حظر "${blockTarget?.name}"؟`
+        }
+        confirmLabel={blockTarget?.status === "active" ? "حظر" : "إلغاء الحظر"}
+        cancelLabel="إلغاء"
+        variant={blockTarget?.status === "active" ? "danger" : "warning"}
+      />
+
       {viewCustomer && (
-        <Modal open onClose={() => setViewCustomer(null)} title="تفاصيل العميل" size="lg">
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div><p className="text-sm text-text-muted">الاسم</p><p className="font-medium text-text">{viewCustomer.name}</p></div>
-              <div><p className="text-sm text-text-muted">البريد الإلكتروني</p><p className="font-medium text-text" dir="ltr">{viewCustomer.email}</p></div>
-              <div><p className="text-sm text-text-muted">الهاتف</p><p className="font-medium text-text" dir="ltr">{viewCustomer.phone}</p></div>
-              <div><p className="text-sm text-text-muted">المدينة</p><p className="font-medium text-text">{viewCustomer.city}</p></div>
-              <div><p className="text-sm text-text-muted">تاريخ الانضمام</p><p className="font-medium text-text">{formatDate(viewCustomer.joinDate)}</p></div>
-              <div><p className="text-sm text-text-muted">إجمالي المشتريات</p><p className="font-semibold text-text">{formatCurrency(viewCustomer.totalSpent)}</p></div>
-              <div><p className="text-sm text-text-muted">عدد الطلبات</p><p className="font-medium text-text">{viewCustomer.orders}</p></div>
-              <div>
-                <p className="text-sm text-text-muted">الحالة</p>
-                {viewCustomer.status === "active" ? <Badge variant="success" dot>نشط</Badge> : <Badge variant="danger" dot>محظور</Badge>}
-              </div>
+        <Modal
+          open
+          onClose={() => setViewCustomer(null)}
+          title="تفاصيل العميل"
+          size="lg"
+          footer={
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" onClick={() => setViewCustomer(null)}>
+                إغلاق
+              </Button>
+              <Button
+                onClick={() => {
+                  openEdit(viewCustomer);
+                  setViewCustomer(null);
+                }}
+              >
+                تعديل
+              </Button>
             </div>
-            {viewCustomer.tags.length > 0 && (
+          }
+        >
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <Avatar name={viewCustomer.name} size="xl" />
               <div>
-                <p className="text-sm text-text-muted mb-2">التاقات</p>
-                <div className="flex gap-2">
-                  {viewCustomer.tags.map((tag) => <Badge key={tag} variant="purple">{tag}</Badge>)}
+                <h3 className="text-lg font-semibold text-text">
+                  {viewCustomer.name}
+                </h3>
+                <p className="text-sm text-text-muted" dir="ltr">
+                  {viewCustomer.email}
+                </p>
+                <div className="mt-1">
+                  {viewCustomer.status === "active" ? (
+                    <Badge variant="success" dot size="sm">
+                      نشط
+                    </Badge>
+                  ) : (
+                    <Badge variant="danger" dot size="sm">
+                      محظور
+                    </Badge>
+                  )}
                 </div>
               </div>
-            )}
-            <div className="flex justify-end gap-3">
-              <Button variant="secondary" onClick={() => setViewCustomer(null)}>إغلاق</Button>
-              <Button onClick={() => { router.push(`/admin/customers/${viewCustomer.id}`); }}>عرض الملف الشخصي</Button>
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center gap-3 p-3 bg-bg rounded-lg">
+                <Phone size={16} className="text-text-muted shrink-0" />
+                <div>
+                  <p className="text-xs text-text-muted">الهاتف</p>
+                  <p className="text-sm font-medium text-text" dir="ltr">
+                    {viewCustomer.phone}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-bg rounded-lg">
+                <MapPin size={16} className="text-text-muted shrink-0" />
+                <div>
+                  <p className="text-xs text-text-muted">المدينة</p>
+                  <p className="text-sm font-medium text-text">
+                    {viewCustomer.city}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-bg rounded-lg">
+                <MapPin size={16} className="text-text-muted shrink-0" />
+                <div>
+                  <p className="text-xs text-text-muted">الدولة</p>
+                  <p className="text-sm font-medium text-text">
+                    {viewCustomer.country}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-bg rounded-lg">
+                <Calendar size={16} className="text-text-muted shrink-0" />
+                <div>
+                  <p className="text-xs text-text-muted">تاريخ الانضمام</p>
+                  <p className="text-sm font-medium text-text">
+                    {formatDate(viewCustomer.joinDate)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-bg rounded-lg">
+                <p className="text-2xl font-bold text-text">
+                  {viewCustomer.orders}
+                </p>
+                <p className="text-xs text-text-muted mt-1">إجمالي الطلبات</p>
+              </div>
+              <div className="text-center p-4 bg-bg rounded-lg">
+                <p className="text-2xl font-bold text-primary">
+                  {formatCurrency(viewCustomer.totalSpent)}
+                </p>
+                <p className="text-xs text-text-muted mt-1">إجمالي الإنفاق</p>
+              </div>
+              <div className="text-center p-4 bg-bg rounded-lg">
+                <p className="text-sm font-medium text-text">
+                  {viewCustomer.lastOrderDate
+                    ? formatDate(viewCustomer.lastOrderDate)
+                    : "—"}
+                </p>
+                <p className="text-xs text-text-muted mt-1">آخر طلب</p>
+              </div>
+            </div>
+
+            {viewCustomer.notes && (
+              <div className="p-3 bg-bg rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText size={14} className="text-text-muted" />
+                  <p className="text-xs font-medium text-text-muted">ملاحظات</p>
+                </div>
+                <p className="text-sm text-text-secondary">
+                  {viewCustomer.notes}
+                </p>
+              </div>
+            )}
           </div>
         </Modal>
       )}
 
       {(editCustomer || addModal) && (
-        <Modal open onClose={() => { setEditCustomer(null); setAddModal(false); }} title={editCustomer ? "تعديل العميل" : "إضافة عميل جديد"} size="md">
+        <Modal
+          open
+          onClose={() => {
+            setEditCustomer(null);
+            setAddModal(false);
+            resetForm();
+          }}
+          title={editCustomer ? "تعديل العميل" : "إضافة عميل جديد"}
+          size="md"
+          footer={
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setEditCustomer(null);
+                  setAddModal(false);
+                  resetForm();
+                }}
+              >
+                إلغاء
+              </Button>
+              <Button onClick={handleSave}>
+                {editCustomer ? "حفظ التعديلات" : "إضافة"}
+              </Button>
+            </div>
+          }
+        >
           <div className="space-y-4">
-            <Input label="الاسم" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="أدخل اسم العميل" required />
-            <Input label="البريد الإلكتروني" type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@example.com" dir="ltr" required />
-            <Input label="الهاتف" value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="+966501234567" dir="ltr" />
-            <Select
-              label="المدينة"
-              options={cityOptions.filter((o) => o.value)}
-              value={formCity}
-              onChange={(e) => setFormCity(e.target.value)}
-              placeholder="اختر المدينة"
+            <Input
+              label="الاسم الكامل"
+              value={formName}
+              onChange={(e) => setFormName(e.target.value)}
+              placeholder="أدخل اسم العميل"
+              required
             />
-            <div className="flex justify-end gap-3">
-              <Button variant="secondary" onClick={() => { setEditCustomer(null); setAddModal(false); }}>إلغاء</Button>
-              <Button onClick={handleSave}>{editCustomer ? "حفظ التعديلات" : "إضافة"}</Button>
+            <Input
+              label="البريد الإلكتروني"
+              type="email"
+              value={formEmail}
+              onChange={(e) => setFormEmail(e.target.value)}
+              placeholder="email@example.com"
+              dir="ltr"
+              required
+            />
+            <Input
+              label="رقم الهاتف"
+              value={formPhone}
+              onChange={(e) => setFormPhone(e.target.value)}
+              placeholder="+966501234567"
+              dir="ltr"
+            />
+            <div className="grid grid-cols-2 gap-4">
+              <Select
+                label="المدينة"
+                options={cityOptions.filter((o) => o.value)}
+                value={formCity}
+                onChange={(e) => setFormCity(e.target.value)}
+                placeholder="اختر المدينة"
+              />
+              <Select
+                label="الدولة"
+                options={countryOptions}
+                value={formCountry}
+                onChange={(e) => setFormCountry(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text mb-2">
+                الحالة
+              </label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFormStatus("active")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
+                    formStatus === "active"
+                      ? "border-success bg-success-light text-success"
+                      : "border-border bg-surface text-text-secondary hover:bg-surface-hover"
+                  }`}
+                >
+                  <Shield size={14} />
+                  نشط
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormStatus("blocked")}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-all cursor-pointer ${
+                    formStatus === "blocked"
+                      ? "border-danger bg-danger-light text-danger"
+                      : "border-border bg-surface text-text-secondary hover:bg-surface-hover"
+                  }`}
+                >
+                  <ShieldOff size={14} />
+                  محظور
+                </button>
+              </div>
             </div>
           </div>
         </Modal>
       )}
-    </div>
+    </motion.div>
   );
 }
