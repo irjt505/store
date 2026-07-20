@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { Save, Truck, Package, Globe, Settings2, MapPin } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -13,23 +14,10 @@ import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 
-type ShippingZone = {
-  id: string;
-  name: string;
-  type: "domestic" | "gcc" | "international";
-  carriers: string[];
-  enabled: boolean;
-};
+const fadeUp = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } };
 
-type ShippingCarrier = {
-  id: string;
-  name: string;
-  description: string;
-  enabled: boolean;
-  rateType: "weight" | "price" | "flat";
-  baseRate: number;
-  perKgRate: number;
-};
+type ShippingZone = { id: string; name: string; type: "domestic" | "gcc" | "international"; carriers: string[]; enabled: boolean };
+type ShippingCarrier = { id: string; name: string; description: string; enabled: boolean; rateType: "weight" | "price" | "flat"; baseRate: number; perKgRate: number };
 
 const defaultZones: ShippingZone[] = [
   { id: "1", name: "الشحن المحلي", type: "domestic", carriers: ["aramex", "smsa", "local"], enabled: true },
@@ -93,65 +81,75 @@ export default function ShippingSettingsPage() {
       <PageHeader title="إعدادات الشحن والتوصيل" subtitle="إدارة مناطق الشحن وشركات التوصيل" />
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card header={<div className="flex items-center gap-2"><Truck size={18} className="text-primary" /><h3 className="font-semibold text-text">الشحن المجاني</h3></div>} padding="md">
-          <div className="space-y-4">
-            <Toggle checked={enableFreeShipping} onChange={setEnableFreeShipping} label="تفعيل الشحن المجاني" description="توفير شحن مجاني للطلبات التي تتجاوز حد معين" />
-            {enableFreeShipping && (
-              <Input label="الحد الأدنى للشحن المجاني (ر.س)" type="number" value={freeShippingThreshold} onChange={(e) => setFreeShippingThreshold(Number(e.target.value))} helperText="الطلبات التي تتجاوز هذا المبلغ تحصل على شحن مجاني" />
-            )}
-            <Toggle checked={showEstimate} onChange={setShowEstimate} label="عرض وقت التوصيل التقديري" description="إظهار وقت التوصيل المتوقع للعملاء" />
-          </div>
-        </Card>
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.05 }}>
+          <Card header={<div className="flex items-center gap-2"><Truck size={16} className="text-primary" /><h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide">الشحن المجاني</h3></div>} padding="md">
+            <div className="space-y-4">
+              <Toggle checked={enableFreeShipping} onChange={setEnableFreeShipping} label="تفعيل الشحن المجاني" description="توفير شحن مجاني للطلبات التي تتجاوز حد معين" />
+              {enableFreeShipping && (
+                <Input label="الحد الأدنى للشحن المجاني (ر.س)" type="number" value={freeShippingThreshold} onChange={(e) => setFreeShippingThreshold(Number(e.target.value))} helperText="الطلبات التي تتجاوز هذا المبلغ تحصل على شحن مجاني" />
+              )}
+              <Toggle checked={showEstimate} onChange={setShowEstimate} label="عرض وقت التوصيل التقديري" description="إظهار وقت التوصيل المتوقع للعملاء" />
+            </div>
+          </Card>
+        </motion.div>
 
-        <Card header={<div className="flex items-center gap-2"><Package size={18} className="text-primary" /><h3 className="font-semibold text-text">المنتجات الرقمية</h3></div>} padding="md">
-          <div className="space-y-4">
-            <Toggle checked={digitalInstantDelivery} onChange={setDigitalInstantDelivery} label="تسليم فوري" description="تقديم الملفات الرقمية فوراً بعد الدفع" />
-            <Toggle checked={digitalEmailDelivery} onChange={setDigitalEmailDelivery} label="إرسال بالبريد الإلكتروني" description="إرسال رابط التحميل عبر البريد بعد الشراء" />
-          </div>
-        </Card>
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.1 }}>
+          <Card header={<div className="flex items-center gap-2"><Package size={16} className="text-primary" /><h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide">المنتجات الرقمية</h3></div>} padding="md">
+            <div className="space-y-4">
+              <Toggle checked={digitalInstantDelivery} onChange={setDigitalInstantDelivery} label="تسليم فوري" description="تقديم الملفات الرقمية فوراً بعد الدفع" />
+              <Toggle checked={digitalEmailDelivery} onChange={setDigitalEmailDelivery} label="إرسال بالبريد الإلكتروني" description="إرسال رابط التحميل عبر البريد بعد الشراء" />
+            </div>
+          </Card>
+        </motion.div>
 
-        <Card header={<div className="flex items-center gap-2"><MapPin size={18} className="text-primary" /><h3 className="font-semibold text-text">مناطق الشحن</h3></div>} padding="md" className="xl:col-span-2">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {zones.map((zone) => (
-              <div key={zone.id} className={cn("p-4 rounded-xl border transition-all", zone.enabled ? "border-border bg-surface" : "border-border bg-surface-hover opacity-60")}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Globe size={16} className="text-primary" />
-                    <h4 className="font-semibold text-text">{zone.name}</h4>
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.15 }} className="xl:col-span-2">
+          <Card header={<div className="flex items-center gap-2"><MapPin size={16} className="text-primary" /><h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide">مناطق الشحن</h3></div>} padding="md">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {zones.map((zone, idx) => (
+                <motion.div key={zone.id} initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.2 + idx * 0.05 }}
+                  className={cn("p-4 rounded-xl border transition-all", zone.enabled ? "border-border bg-surface" : "border-border bg-surface-hover opacity-60")}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Globe size={16} className="text-primary" />
+                      <h4 className="font-semibold text-text">{zone.name}</h4>
+                    </div>
+                    <Toggle checked={zone.enabled} onChange={() => toggleZone(zone.id)} />
                   </div>
-                  <Toggle checked={zone.enabled} onChange={() => toggleZone(zone.id)} />
-                </div>
-                <Badge variant={zoneTypeBadge[zone.type]} className="mb-2">{zoneTypeLabels[zone.type]}</Badge>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {zone.carriers.map((cId) => {
-                    const carrier = carriers.find((ca) => ca.id === cId);
-                    return carrier ? <Badge key={cId} variant="default" className="text-[10px]">{carrier.name}</Badge> : null;
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
+                  <Badge variant={zoneTypeBadge[zone.type]} className="mb-2">{zoneTypeLabels[zone.type]}</Badge>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {zone.carriers.map((cId) => {
+                      const carrier = carriers.find((ca) => ca.id === cId);
+                      return carrier ? <Badge key={cId} variant="default" className="text-[10px]">{carrier.name}</Badge> : null;
+                    })}
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </Card>
+        </motion.div>
 
-        <Card header={<h3 className="font-semibold text-text">شركات الشحن</h3>} padding="md" className="xl:col-span-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {carriers.map((carrier) => (
-              <div key={carrier.id} className={cn("p-4 rounded-xl border transition-all", carrier.enabled ? "border-border" : "border-border opacity-60")}>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-text">{carrier.name}</h4>
-                  <Toggle checked={carrier.enabled} onChange={() => toggleCarrier(carrier.id)} />
-                </div>
-                <p className="text-xs text-text-muted mb-3">{carrier.description}</p>
-                <div className="space-y-1 text-xs text-text-secondary">
-                  <p>نوع التسعير: {carrier.rateType === "weight" ? "حسب الوزن" : carrier.rateType === "price" ? "حسب السعر" : "سعر ثابت"}</p>
-                  <p>السعر الأساسي: {carrier.baseRate} ر.س</p>
-                  {carrier.rateType === "weight" && <p>لكل كجم: {carrier.perKgRate} ر.س</p>}
-                </div>
-                <Button variant="secondary" size="sm" fullWidth className="mt-3" icon={<Settings2 size={14} />} onClick={() => openCarrierConfig(carrier)}>تعديل الأسعار</Button>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.25 }} className="xl:col-span-2">
+          <Card header={<h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide">شركات الشحن</h3>} padding="md">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {carriers.map((carrier, idx) => (
+                <motion.div key={carrier.id} initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.3 + idx * 0.04 }}
+                  className={cn("p-4 rounded-xl border transition-all", carrier.enabled ? "border-border" : "border-border opacity-60")}>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-text">{carrier.name}</h4>
+                    <Toggle checked={carrier.enabled} onChange={() => toggleCarrier(carrier.id)} />
+                  </div>
+                  <p className="text-xs text-text-muted mb-3">{carrier.description}</p>
+                  <div className="space-y-1 text-xs text-text-secondary">
+                    <p>نوع التسعير: {carrier.rateType === "weight" ? "حسب الوزن" : carrier.rateType === "price" ? "حسب السعر" : "سعر ثابت"}</p>
+                    <p>السعر الأساسي: {carrier.baseRate} ر.س</p>
+                    {carrier.rateType === "weight" && <p>لكل كجم: {carrier.perKgRate} ر.س</p>}
+                  </div>
+                  <Button variant="secondary" size="sm" fullWidth className="mt-3" icon={<Settings2 size={14} />} onClick={() => openCarrierConfig(carrier)}>تعديل الأسعار</Button>
+                </motion.div>
+              ))}
+            </div>
+          </Card>
+        </motion.div>
       </div>
 
       {configModal && (
@@ -169,7 +167,11 @@ export default function ShippingSettingsPage() {
         </Modal>
       )}
 
-      <div className="flex justify-end"><Button onClick={handleSave} loading={loading} icon={<Save size={16} />}>حفظ التغييرات</Button></div>
+      <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.35 }} className="flex justify-end sticky bottom-4 z-10">
+        <div className="bg-surface/80 backdrop-blur-xl border border-border rounded-xl p-3 shadow-lg">
+          <Button onClick={handleSave} loading={loading} icon={<Save size={16} />}>حفظ التغييرات</Button>
+        </div>
+      </motion.div>
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
+import { Pagination } from "@/components/ui/Pagination";
 import { Toggle } from "@/components/ui/Toggle";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
@@ -203,13 +204,14 @@ export default function NotificationsPage() {
       </div>
 
       {totalPages > 1 && (
-        <div className="flex justify-center">
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>السابق</Button>
-            <span className="text-sm text-text-muted">صفحة {page} من {totalPages}</span>
-            <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>التالي</Button>
-          </div>
-        </div>
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={perPage}
+          onPageChange={setPage}
+          onItemsPerPageChange={setPerPage}
+        />
       )}
 
       <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={deleteNotification} title="حذف الإشعار" message="هل أنت متأكد من حذف هذا الإشعار؟" confirmLabel="حذف" cancelLabel="إلغاء" variant="danger" />

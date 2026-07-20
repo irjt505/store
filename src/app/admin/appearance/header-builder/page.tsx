@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { Save, Eye, GripVertical, Palette, Type, Layout } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { Toggle } from "@/components/ui/Toggle";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
@@ -46,7 +48,7 @@ export default function HeaderBuilderPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="بناء الهيدر" subtitle="تخصيص هيكل وتصميم رأس الموقع" actions={
+      <PageHeader title="بناء الرأس" subtitle="تخصيص هيكل وتصميم رأس الموقع" actions={
         <div className="flex items-center gap-2">
           <Button variant="secondary" icon={<Eye size={16} />} onClick={() => setPreviewOpen(true)}>معاينة</Button>
           <Button icon={<Save size={16} />} onClick={handleSave}>حفظ</Button>
@@ -55,45 +57,80 @@ export default function HeaderBuilderPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3 space-y-4">
-          <Card header={<div className="flex items-center gap-3"><GripVertical size={16} className="text-text-muted cursor-grab" /><div className="flex items-center gap-2 flex-1"><Type size={16} className="text-text-secondary" /><span className="font-medium text-text">الشريط العلوي</span></div><button onClick={() => updateTopBar("enabled", !config.topBar.enabled)} className={cn("relative w-10 h-6 rounded-full transition-colors cursor-pointer", config.topBar.enabled ? "bg-primary" : "bg-border")}><span className={cn("absolute top-1 w-4 h-4 rounded-full bg-white transition-transform", config.topBar.enabled ? "right-5" : "right-1")} /></button></div>} padding="md">
-            <div className={cn("space-y-4", !config.topBar.enabled && "opacity-40 pointer-events-none")}>
-              <Input label="نص الإعلان" value={config.topBar.text} onChange={(e) => updateTopBar("text", e.target.value)} />
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-text mb-1.5">لون الخلفية</label>
-                  <div className="flex items-center gap-2">
-                    <input type="color" value={config.topBar.bgColor} onChange={(e) => updateTopBar("bgColor", e.target.value)} className="w-9 h-9 rounded-lg border border-border cursor-pointer p-0.5" />
-                    <input type="text" value={config.topBar.bgColor} onChange={(e) => updateTopBar("bgColor", e.target.value)} className="flex-1 h-9 rounded-lg border border-border bg-surface px-3 text-sm text-text font-mono" />
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }}>
+            <Card padding="md">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-light">
+                    <Type size={16} className="text-primary" />
                   </div>
+                  <span className="font-medium text-text">الشريط العلوي</span>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-text mb-1.5">لون النص</label>
-                  <div className="flex items-center gap-2">
-                    <input type="color" value={config.topBar.textColor} onChange={(e) => updateTopBar("textColor", e.target.value)} className="w-9 h-9 rounded-lg border border-border cursor-pointer p-0.5" />
-                    <input type="text" value={config.topBar.textColor} onChange={(e) => updateTopBar("textColor", e.target.value)} className="flex-1 h-9 rounded-lg border border-border bg-surface px-3 text-sm text-text font-mono" />
+                <Toggle checked={config.topBar.enabled} onChange={(v) => updateTopBar("enabled", v)} />
+              </div>
+              <div className={cn("space-y-4 transition-opacity", !config.topBar.enabled && "opacity-40 pointer-events-none")}>
+                <Input label="نص الإعلان" value={config.topBar.text} onChange={(e) => updateTopBar("text", e.target.value)} />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-text mb-1.5">لون الخلفية</label>
+                    <div className="flex items-center gap-2">
+                      <input type="color" value={config.topBar.bgColor} onChange={(e) => updateTopBar("bgColor", e.target.value)} className="w-9 h-9 rounded-lg border border-border cursor-pointer p-0.5" />
+                      <input type="text" value={config.topBar.bgColor} onChange={(e) => updateTopBar("bgColor", e.target.value)} className="flex-1 h-9 rounded-lg border border-border bg-surface px-3 text-sm text-text font-mono" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-text mb-1.5">لون النص</label>
+                    <div className="flex items-center gap-2">
+                      <input type="color" value={config.topBar.textColor} onChange={(e) => updateTopBar("textColor", e.target.value)} className="w-9 h-9 rounded-lg border border-border cursor-pointer p-0.5" />
+                      <input type="text" value={config.topBar.textColor} onChange={(e) => updateTopBar("textColor", e.target.value)} className="flex-1 h-9 rounded-lg border border-border bg-surface px-3 text-sm text-text font-mono" />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+          </motion.div>
 
-          <Card header={<div className="flex items-center gap-3"><GripVertical size={16} className="text-text-muted cursor-grab" /><div className="flex items-center gap-2 flex-1"><Layout size={16} className="text-text-secondary" /><span className="font-medium text-text">الهيدر الرئيسي</span></div></div>} padding="md">
-            <div className="space-y-4">
-              <Select label="موضع الشعار" options={[{ value: "left", label: "يسار" }, { value: "center", label: "وسط" }]} value={config.main.logoPosition} onChange={(e) => updateMain("logoPosition", e.target.value)} />
-              <Select label="موضع القائمة" options={[{ value: "right", label: "يمين" }, { value: "left", label: "يسار" }]} value={config.main.menuPosition} onChange={(e) => updateMain("menuPosition", e.target.value)} />
-            </div>
-          </Card>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1 }}>
+            <Card padding="md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-light">
+                  <Layout size={16} className="text-primary" />
+                </div>
+                <span className="font-medium text-text">الهيدر الرئيسي</span>
+              </div>
+              <div className="space-y-4">
+                <Select label="موضع الشعار" options={[{ value: "left", label: "يسار" }, { value: "center", label: "وسط" }]} value={config.main.logoPosition} onChange={(e) => updateMain("logoPosition", e.target.value)} />
+                <Select label="موضع القائمة" options={[{ value: "right", label: "يمين" }, { value: "left", label: "يسار" }]} value={config.main.menuPosition} onChange={(e) => updateMain("menuPosition", e.target.value)} />
+              </div>
+            </Card>
+          </motion.div>
 
-          <Card header={<div className="flex items-center gap-3"><GripVertical size={16} className="text-text-muted cursor-grab" /><div className="flex items-center gap-2 flex-1"><Palette size={16} className="text-text-secondary" /><span className="font-medium text-text">الشريط السفلي</span></div><button onClick={toggleBottomBar} className={cn("relative w-10 h-6 rounded-full transition-colors cursor-pointer", config.bottomBar.enabled ? "bg-primary" : "bg-border")}><span className={cn("absolute top-1 w-4 h-4 rounded-full bg-white transition-transform", config.bottomBar.enabled ? "right-5" : "right-1")} /></button></div>} padding="md">
-            <div className={cn(!config.bottomBar.enabled && "opacity-40 pointer-events-none")}>
-              <p className="text-sm text-text-muted text-center py-4">الشريط السفلي غير مفعّل حالياً</p>
-            </div>
-          </Card>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.15 }}>
+            <Card padding="md">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-light">
+                    <Palette size={16} className="text-primary" />
+                  </div>
+                  <span className="font-medium text-text">الشريط السفلي</span>
+                </div>
+                <Toggle checked={config.bottomBar.enabled} onChange={toggleBottomBar} />
+              </div>
+              <div className={cn("transition-opacity", !config.bottomBar.enabled && "opacity-40 pointer-events-none")}>
+                <p className="text-sm text-text-muted text-center py-4">الشريط السفلي غير مفعّل حالياً</p>
+              </div>
+            </Card>
+          </motion.div>
         </div>
 
-        <div className="lg:col-span-2">
+        <motion.div
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="lg:col-span-2"
+        >
           <Card padding="none" className="sticky top-6 overflow-hidden">
-            <div className="px-4 py-3 border-b border-border bg-bg/50"><span className="text-sm font-medium text-text">معاينة مباشرة</span></div>
+            <div className="px-4 py-3 border-b border-border"><span className="text-sm font-medium text-text">معاينة مباشرة</span></div>
             <div className="bg-white">
               {config.topBar.enabled && <div className="px-4 py-2 text-center text-xs" style={{ backgroundColor: config.topBar.bgColor, color: config.topBar.textColor }}>{config.topBar.text}</div>}
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -111,7 +148,7 @@ export default function HeaderBuilderPage() {
               </div>
             </div>
           </Card>
-        </div>
+        </motion.div>
       </div>
 
       {previewOpen && (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { motion } from "framer-motion";
 import {
   ShoppingCart,
   Mail,
@@ -12,6 +13,8 @@ import {
   DollarSign,
   TrendingUp,
   Wallet,
+  Undo2,
+  AlertTriangle,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -51,6 +54,16 @@ const mockCarts: AbandonedCart[] = [
   { id: "11", customerName: "عبدالرحمن الزهراني", customerEmail: "abdulrahman.z@example.com", items: 5, cartValue: 4100, abandonedAt: "2025-07-17T09:00:00", recovered: true, recoveryEmailSent: true },
   { id: "12", customerName: "دانة المطيري", customerEmail: "dana.m@example.com", items: 1, cartValue: 320, abandonedAt: "2025-07-16T19:45:00", recovered: false, recoveryEmailSent: false },
 ];
+
+const container = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0 },
+};
 
 function getTimeElapsed(dateStr: string): string {
   const now = new Date();
@@ -95,14 +108,10 @@ export default function AbandonedCartsPage() {
     defaultSortDir: "desc",
   });
 
-  const totalToday = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0];
-    return carts.filter((c) => c.abandonedAt.startsWith(today)).length;
-  }, [carts]);
-
   const totalValue = useMemo(() => carts.filter((c) => !c.recovered).reduce((s, c) => s + c.cartValue, 0), [carts]);
   const recoveredCount = useMemo(() => carts.filter((c) => c.recovered).length, [carts]);
-  const conversionRate = useMemo(() => carts.length > 0 ? Math.round((recoveredCount / carts.length) * 100) : 0, [carts, recoveredCount]);
+  const notRecovered = useMemo(() => carts.filter((c) => !c.recovered).length, [carts]);
+  const totalCartValue = useMemo(() => carts.reduce((s, c) => s + c.cartValue, 0), [carts]);
 
   const handleSendRecoveryEmail = useCallback((cart: AbandonedCart) => {
     update(cart.id, { recoveryEmailSent: true });
@@ -147,7 +156,7 @@ export default function AbandonedCartsPage() {
     },
     {
       key: "cartValue" as const,
-      label: "قيمة السلة",
+      label: "القيمة",
       sortable: true,
       render: (value: unknown) => (
         <span className="font-semibold">{formatCurrency(Number(value))}</span>
@@ -155,7 +164,7 @@ export default function AbandonedCartsPage() {
     },
     {
       key: "abandonedAt" as const,
-      label: "تاريخ التخلي",
+      label: "تاريخ الهجر",
       sortable: true,
       render: (value: unknown) => (
         <div>
@@ -163,16 +172,6 @@ export default function AbandonedCartsPage() {
           <p className="text-xs text-text-muted">{getTimeElapsed(String(value))}</p>
         </div>
       ),
-    },
-    {
-      key: "recoveryEmailSent" as const,
-      label: "البريد",
-      render: (value: unknown) =>
-        value ? (
-          <Badge variant="success">تم الإرسال</Badge>
-        ) : (
-          <Badge variant="default">لم يُرسل</Badge>
-        ),
     },
     {
       key: "recovered" as const,
@@ -187,41 +186,42 @@ export default function AbandonedCartsPage() {
     },
     {
       key: "actions" as const,
-      label: "الإجراءات",
+      label: "الإجراء",
       className: "w-40",
       render: (_value: unknown, row: AbandonedCart) => (
         <div className="flex items-center gap-1">
           {!row.recovered && (
             <>
-              <Button variant="ghost" size="sm" icon={<Mail size={14} />} onClick={(e) => { e.stopPropagation(); handleSendRecoveryEmail(row); }} />
-              <Button variant="ghost" size="sm" icon={<MessageCircle size={14} />} onClick={(e) => { e.stopPropagation(); handleSendWhatsApp(row); }} />
+              <Button variant="ghost" size="sm" icon={<Mail size={14} />} onClick={(e) => { e.stopPropagation(); handleSendRecoveryEmail(row); }} title="إرسال بريد" />
+              <Button variant="ghost" size="sm" icon={<MessageCircle size={14} />} onClick={(e) => { e.stopPropagation(); handleSendWhatsApp(row); }} title="واتساب" />
             </>
           )}
           <Button variant="ghost" size="sm" icon={<Eye size={14} />} onClick={(e) => { e.stopPropagation(); setViewCart(row); }} />
           {!row.recovered && (
-            <Button variant="ghost" size="sm" icon={<CheckCircle size={14} />} onClick={(e) => { e.stopPropagation(); handleMarkRecovered(row); }} />
+            <Button variant="ghost" size="sm" icon={<CheckCircle size={14} />} onClick={(e) => { e.stopPropagation(); handleMarkRecovered(row); }} title="تحديد كمستردة" />
           )}
-          <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} className="text-danger hover:text-danger" onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
         </div>
       ),
     },
   ], [handleSendRecoveryEmail, handleSendWhatsApp, handleMarkRecovered]);
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="السلات المتروكة"
-        subtitle="استرداد السلات المتروكة من العملاء"
-      />
+    <motion.div className="space-y-6" variants={container} initial="hidden" animate="show">
+      <motion.div variants={item}>
+        <PageHeader
+          title="السلال المهجورة"
+          subtitle="استرداد السلال المهجورة من العملاء وزيادة معدلات التحويل"
+        />
+      </motion.div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<ShoppingCart size={20} />} label="سللات متروكة اليوم" value={String(totalToday)} change="" changeType="up" color="warning" />
-        <StatCard icon={<DollarSign size={20} />} label="قيمتها الإجمالية" value={formatCurrency(totalValue)} change="" changeType="up" color="danger" />
-        <StatCard icon={<TrendingUp size={20} />} label="نسبة التحويل" value={`${conversionRate}%`} change="" changeType="up" color="success" />
-        <StatCard icon={<Wallet size={20} />} label="إجمالي المحافظ" value={String(recoveredCount)} change="" changeType="up" color="info" />
-      </div>
+      <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={<ShoppingCart size={20} />} label="إجمالي السلال" value={totalItems} color="primary" />
+        <StatCard icon={<AlertTriangle size={20} />} label="غير مستردة" value={notRecovered} color="danger" />
+        <StatCard icon={<Undo2 size={20} />} label="مستردة" value={recoveredCount} color="success" />
+        <StatCard icon={<DollarSign size={20} />} label="القيمة الإجمالية" value={formatCurrency(totalCartValue)} color="warning" />
+      </motion.div>
 
-      <div className="flex items-center gap-3 flex-wrap">
+      <motion.div variants={item} className="flex items-center gap-3 flex-wrap">
         <SearchInput placeholder="بحث بالاسم أو البريد الإلكتروني..." value={search} onChange={setSearch} className="w-80" />
         <Button variant="secondary" size="sm" icon={<Filter size={14} />} onClick={() => setShowFilters(!showFilters)}>
           فلاتر متقدمة
@@ -231,37 +231,38 @@ export default function AbandonedCartsPage() {
             مسح الفلاتر
           </Button>
         )}
-      </div>
+      </motion.div>
 
       {showFilters && (
-        <div className="flex items-end gap-3 p-4 bg-surface rounded-xl border border-border">
+        <motion.div variants={item} className="flex items-end gap-3 p-4 bg-surface rounded-xl border border-border">
           <Input label="من تاريخ" type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
           <Input label="إلى تاريخ" type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
           <Input label="الحد الأدنى للقيمة" type="number" value={minValue} onChange={(e) => setMinValue(e.target.value)} placeholder="0" />
           <Input label="الحد الأعلى للقيمة" type="number" value={maxValue} onChange={(e) => setMaxValue(e.target.value)} placeholder="10000" />
-        </div>
+        </motion.div>
       )}
 
-      <DataTable
-        columns={columns}
-        data={paginatedData}
-        emptyMessage="لا توجد سلات متروكة"
-        selectable
-        selectedKeys={selectedKeys}
-        onSelectionChange={setSelectedKeys}
-        rowKey="id"
-        sortable
-        pagination={{
-          currentPage: page,
-          totalPages,
-          totalItems,
-          itemsPerPage: perPage,
-          onPageChange: setPage,
-          onItemsPerPageChange: setPerPage,
-        }}
-        exportable
-        striped
-      />
+      <motion.div variants={item}>
+        <DataTable
+          columns={columns}
+          data={paginatedData}
+          emptyMessage="لا توجد سلال مهجورة"
+          selectable
+          selectedKeys={selectedKeys}
+          onSelectionChange={setSelectedKeys}
+          rowKey="id"
+          sortable
+          pagination={{
+            currentPage: page,
+            totalPages,
+            totalItems,
+            itemsPerPage: perPage,
+            onPageChange: setPage,
+            onItemsPerPageChange: setPerPage,
+          }}
+          striped
+        />
+      </motion.div>
 
       {viewCart && (
         <Modal open onClose={() => setViewCart(null)} title="تفاصيل السلة" size="md">
@@ -284,7 +285,7 @@ export default function AbandonedCartsPage() {
                 <p className="font-semibold text-primary">{formatCurrency(viewCart.cartValue)}</p>
               </div>
               <div>
-                <p className="text-sm text-text-muted">تاريخ التخلي</p>
+                <p className="text-sm text-text-muted">تاريخ الهجر</p>
                 <p className="font-medium text-text">{formatDateTime(viewCart.abandonedAt)}</p>
               </div>
               <div>
@@ -321,11 +322,11 @@ export default function AbandonedCartsPage() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         title="حذف السلة"
-        message="هل أنت متأكد من حذف هذه السلة المتروكة؟ لا يمكن التراجع عن هذا الإجراء."
+        message="هل أنت متأكد من حذف هذه السلة المهجورة؟ لا يمكن التراجع عن هذا الإجراء."
         confirmLabel="حذف"
         cancelLabel="إلغاء"
         variant="danger"
       />
-    </div>
+    </motion.div>
   );
 }

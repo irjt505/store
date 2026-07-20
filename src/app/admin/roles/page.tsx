@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
+import { motion } from "framer-motion";
 import { Shield, Plus, Pencil, Trash2, Lock, Users, Key } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -75,6 +76,8 @@ export default function RolesPage() {
   const [formDescription, setFormDescription] = useState("");
   const [formPermissions, setFormPermissions] = useState<string[]>([]);
   const [deleteModal, setDeleteModal] = useState<Role | null>(null);
+
+  const fadeUp = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } };
 
   const groupedPermissions = useMemo(() => {
     const groups: Record<string, Permission[]> = {};

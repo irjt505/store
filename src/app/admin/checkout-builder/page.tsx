@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { Monitor, Tablet, Smartphone, Save, Eye, Plus, Trash2, GripVertical, ArrowLeft, CreditCard, ShoppingCart, User, Mail, MapPin } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -75,7 +76,7 @@ export default function CheckoutBuilderPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="محرر صفحة الدفع" subtitle="تخصيص تجربة الدفع للعملاء" actions={
+      <PageHeader title="بناء صفحة الدفع" subtitle="تخصيص تجربة الدفع للعملاء" actions={
         <div className="flex gap-2">
           <Button variant="secondary" icon={<Eye size={16} />} onClick={() => setPreviewOpen(true)}>معاينة</Button>
           <Button icon={<Save size={16} />} onClick={handleSave}>حفظ</Button>
@@ -84,57 +85,68 @@ export default function CheckoutBuilderPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 space-y-4">
-          <Card>
-            <h3 className="font-semibold text-text mb-3">الخطوات</h3>
-            <div className="space-y-2">
-              {steps.map((step, i) => (
-                <div key={step.id} className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", activeStep === step.id ? "border-primary bg-primary/5" : "border-border hover:bg-surface-hover")} onClick={() => setActiveStep(step.id)}>
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-bold">{i + 1}</span>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-text">{step.name}</p>
-                    <p className="text-xs text-text-muted">{step.fields.length} حقول</p>
-                  </div>
-                  <Toggle checked={step.enabled} onChange={() => toggleStep(step.id)} />
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {currentStep && currentStep.fields.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }}>
             <Card>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-text">حقول {currentStep.name}</h3>
-                <Button variant="ghost" size="sm" icon={<Plus size={14} />} onClick={() => addField(currentStep.id)}>إضافة</Button>
-              </div>
+              <h3 className="font-semibold text-text mb-3">الخطوات</h3>
               <div className="space-y-2">
-                {currentStep.fields.map((field) => {
-                  const Icon = fieldIcons[field.type] || User;
-                  return (
-                    <div key={field.id} className={cn("flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer", selectedField === field.id ? "border-primary bg-primary/5" : "border-border", !field.enabled && "opacity-50")} onClick={() => setSelectedField(field.id)}>
-                      <Icon size={14} className="text-text-muted" />
-                      <span className="flex-1 text-sm text-text">{field.label}</span>
-                      <Toggle checked={field.enabled} onChange={() => toggleField(currentStep.id, field.id)} />
-                      {field.enabled && <Button variant="ghost" size="sm" className={cn("text-xs", field.required ? "text-primary" : "text-text-muted")} onClick={(e) => { e.stopPropagation(); toggleRequired(currentStep.id, field.id); }}>{field.required ? "إلزامي" : "اختياري"}</Button>}
-                      <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} className="text-danger hover:text-danger" onClick={(e) => { e.stopPropagation(); removeField(currentStep.id, field.id); }} />
+                {steps.map((step, i) => (
+                  <div key={step.id} className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all", activeStep === step.id ? "border-primary bg-primary/5" : "border-border hover:bg-surface-hover")} onClick={() => setActiveStep(step.id)}>
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-sm font-bold">{i + 1}</span>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-text">{step.name}</p>
+                      <p className="text-xs text-text-muted">{step.fields.length} حقول</p>
                     </div>
-                  );
-                })}
+                    <Toggle checked={step.enabled} onChange={() => toggleStep(step.id)} />
+                  </div>
+                ))}
               </div>
             </Card>
+          </motion.div>
+
+          {currentStep && currentStep.fields.length > 0 && (
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1 }}>
+              <Card>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-text">حقول {currentStep.name}</h3>
+                  <Button variant="ghost" size="sm" icon={<Plus size={14} />} onClick={() => addField(currentStep.id)}>إضافة</Button>
+                </div>
+                <div className="space-y-2">
+                  {currentStep.fields.map((field) => {
+                    const Icon = fieldIcons[field.type] || User;
+                    return (
+                      <div key={field.id} className={cn("flex items-center gap-2 p-2 rounded-lg border transition-all cursor-pointer", selectedField === field.id ? "border-primary bg-primary/5" : "border-border", !field.enabled && "opacity-50")} onClick={() => setSelectedField(field.id)}>
+                        <Icon size={14} className="text-text-muted" />
+                        <span className="flex-1 text-sm text-text">{field.label}</span>
+                        <Toggle checked={field.enabled} onChange={() => toggleField(currentStep.id, field.id)} />
+                        {field.enabled && <Button variant="ghost" size="sm" className={cn("text-xs", field.required ? "text-primary" : "text-text-muted")} onClick={(e) => { e.stopPropagation(); toggleRequired(currentStep.id, field.id); }}>{field.required ? "إلزامي" : "اختياري"}</Button>}
+                        <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} className="text-danger hover:text-danger" onClick={(e) => { e.stopPropagation(); removeField(currentStep.id, field.id); }} />
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            </motion.div>
           )}
 
-          <Card>
-            <h3 className="font-semibold text-text mb-3">الإعدادات</h3>
-            <div className="space-y-3">
-              <Toggle checked={showCoupon} onChange={setShowCoupon} label="إظهار كوبون الخصم" description="السماح للعملاء بإدخال كود خصم" />
-              <Toggle checked={autoInvoice} onChange={setAutoInvoice} label="إرسال فاتورة تلقائية" description="إرسال فاتورة بالبريد بعد الشراء" />
-              <Toggle checked={showAddress} onChange={setShowAddress} label="حقل العنوان" description="طلب عنوان الفاتورة" />
-              <Toggle checked={instantDownload} onChange={setInstantDownload} label="تحميل فوري" description="تقديم الملفات الرقمية فوراً بعد الدفع" />
-            </div>
-          </Card>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.15 }}>
+            <Card>
+              <h3 className="font-semibold text-text mb-3">الإعدادات</h3>
+              <div className="space-y-3">
+                <Toggle checked={showCoupon} onChange={setShowCoupon} label="إظهار كوبون الخصم" description="السماح للعملاء بإدخال كود خصم" />
+                <Toggle checked={autoInvoice} onChange={setAutoInvoice} label="إرسال فاتورة تلقائية" description="إرسال فاتورة بالبريد بعد الشراء" />
+                <Toggle checked={showAddress} onChange={setShowAddress} label="حقل العنوان" description="طلب عنوان الفاتورة" />
+                <Toggle checked={instantDownload} onChange={setInstantDownload} label="تحميل فوري" description="تقديم الملفات الرقمية فوراً بعد الدفع" />
+              </div>
+            </Card>
+          </motion.div>
         </div>
 
-        <div className="lg:col-span-2">
+        <motion.div
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="lg:col-span-2"
+        >
           <Card>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-text">معاينة حية</h3>
@@ -143,7 +155,7 @@ export default function CheckoutBuilderPage() {
 
             <div className="flex justify-center">
               <div className="bg-bg rounded-xl border border-border overflow-hidden transition-all" style={{ width: deviceWidth[device as keyof typeof deviceWidth], maxWidth: "100%" }}>
-                <div className="bg-gradient-to-l from-primary to-primary/80 p-6 text-white text-center">
+                <div className="bg-primary p-6 text-white text-center">
                   <h2 className="text-xl font-bold">إتمام الشراء</h2>
                   <div className="flex items-center justify-center gap-2 mt-3">
                     {steps.filter((s) => s.enabled).map((s, i) => (
@@ -211,13 +223,13 @@ export default function CheckoutBuilderPage() {
               </div>
             </div>
           </Card>
-        </div>
+        </motion.div>
       </div>
 
       {previewOpen && (
         <Modal open onClose={() => setPreviewOpen(false)} title="معاينة صفحة الدفع" size="xl">
           <div className="bg-bg rounded-xl border border-border overflow-hidden">
-            <div className="bg-gradient-to-l from-primary to-primary/80 p-6 text-white text-center">
+            <div className="bg-primary p-6 text-white text-center">
               <h2 className="text-xl font-bold">إتمام الشراء</h2>
               <div className="flex items-center justify-center gap-2 mt-3">
                 {steps.filter((s) => s.enabled).map((s, i) => (

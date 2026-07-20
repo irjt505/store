@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { Plus, Pencil, Trash2, Copy, BarChart3, Ticket, Percent, DollarSign, Truck, Gift } from "lucide-react";
+import { motion } from "framer-motion";
+import { Plus, Pencil, Trash2, Copy, BarChart3, Ticket, Percent, DollarSign, Truck, Gift, Download } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -11,7 +12,6 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
-import { Textarea } from "@/components/ui/Textarea";
 import { Toggle } from "@/components/ui/Toggle";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
@@ -50,15 +50,25 @@ const mockCoupons: Coupon[] = [
   { id: "9", code: "BULK20", type: "percentage", value: 20, buyQuantity: 0, getQuantity: 0, minOrderAmount: 0, maxUses: null as unknown as number, maxUsesPerCustomer: 10, usage: 156, startDate: "2026-01-01", endDate: "2026-12-31", status: "active", appliesTo: "all", targetNames: "", firstOrderOnly: false, description: "خصم الكمية" },
 ];
 
+const container = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0 },
+};
+
 const statusConfig: Record<Coupon["status"], { label: string; variant: "success" | "danger" | "default" }> = {
   active: { label: "نشط", variant: "success" },
   expired: { label: "منتهي", variant: "danger" },
   disabled: { label: "معطّل", variant: "default" },
 };
 
-const typeConfig: Record<Coupon["type"], { label: string; variant: "success" | "info" | "purple" | "warning"; icon: typeof Percent }> = {
-  percentage: { label: "نسبة مئوية", variant: "purple", icon: Percent },
-  fixed: { label: "مبلغ ثابت", variant: "info", icon: DollarSign },
+const typeConfig: Record<Coupon["type"], { label: string; variant: "success" | "info" | "warning"; icon: typeof Percent }> = {
+  percentage: { label: "نسبة مئوية", variant: "info", icon: Percent },
+  fixed: { label: "مبلغ ثابت", variant: "success", icon: DollarSign },
   free_shipping: { label: "شحن مجاني", variant: "success", icon: Truck },
   buy_x_get_y: { label: "اشترِ X احصل على Y", variant: "warning", icon: Gift },
 };
@@ -110,7 +120,11 @@ export default function CouponsPage() {
 
   const activeCount = useMemo(() => coupons.filter((c) => c.status === "active").length, [coupons]);
   const expiredCount = useMemo(() => coupons.filter((c) => c.status === "expired").length, [coupons]);
-  const totalRevenue = useMemo(() => coupons.reduce((sum, c) => sum + c.usage * (c.type === "fixed" ? c.value : c.type === "percentage" ? 15 : 20), 0) + 15430, [coupons]);
+  const usageRate = useMemo(() => {
+    const total = coupons.reduce((s, c) => s + c.usage, 0);
+    const max = coupons.reduce((s, c) => s + (c.maxUses || 0), 0);
+    return max > 0 ? Math.round((total / max) * 100) : 0;
+  }, [coupons]);
 
   const openCreate = useCallback(() => {
     setEditTarget(null);
@@ -217,6 +231,20 @@ export default function CouponsPage() {
     success("تم التغيير", `تم ${newStatus === "active" ? "تفعيل" : "تعطيل"} كود "${c.code}"`);
   }, [update, success]);
 
+  const handleExport = useCallback(() => {
+    const headers = ["الكود", "النوع", "القيمة", "الحد الأدنى", "الاستخدام", "الحالة"];
+    const rows = coupons.map((c) => [c.code, statusConfig[c.status].label, String(c.value), String(c.minOrderAmount), `${c.usage}/${c.maxUses || "∞"}`, statusConfig[c.status].label]);
+    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "coupons.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    success("تم التصدير", "تم تصدير الكوبونات بنجاح");
+  }, [coupons, success]);
+
   const formatDiscount = (c: Coupon) => {
     if (c.type === "percentage") return `${c.value}%`;
     if (c.type === "fixed") return formatCurrency(c.value);
@@ -229,7 +257,7 @@ export default function CouponsPage() {
       key: "code" as const, label: "الكود", sortable: true,
       render: (value: unknown) => (
         <div className="flex items-center gap-2">
-          <span className="font-mono text-sm font-semibold bg-bg px-2 py-1 rounded">{String(value)}</span>
+          <span className="font-mono text-sm font-semibold bg-surface-hover px-2.5 py-1 rounded-lg">{String(value)}</span>
           <Button variant="ghost" size="sm" icon={<Copy size={12} />} onClick={(e) => { e.stopPropagation(); handleCopy(String(value)); }} />
         </div>
       ),
@@ -255,13 +283,11 @@ export default function CouponsPage() {
     {
       key: "status" as const, label: "الحالة", sortable: true,
       render: (value: unknown, row: Coupon) => (
-        <button onClick={(e) => { e.stopPropagation(); handleToggleStatus(row); }}>
-          <Badge variant={statusConfig[value as Coupon["status"]].variant} dot className="cursor-pointer">{statusConfig[value as Coupon["status"]].label}</Badge>
+        <button onClick={(e) => { e.stopPropagation(); handleToggleStatus(row); }} className="cursor-pointer">
+          <Badge variant={statusConfig[value as Coupon["status"]].variant} dot>{statusConfig[value as Coupon["status"]].label}</Badge>
         </button>
       ),
     },
-    { key: "startDate" as const, label: "من", sortable: true, render: (value: unknown) => formatDate(String(value)) },
-    { key: "endDate" as const, label: "إلى", sortable: true, render: (value: unknown) => formatDate(String(value)) },
     {
       key: "id" as const, label: "الإجراءات", className: "w-24",
       render: (_: unknown, row: Coupon) => (
@@ -274,31 +300,44 @@ export default function CouponsPage() {
   ], [openEdit, handleCopy, handleToggleStatus]);
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="الكوبونات" subtitle="إدارة كوبونات الخصم والعروض" actions={<Button icon={<Plus size={16} />} onClick={openCreate}>إنشاء كوبون</Button>} />
+    <motion.div className="space-y-6" variants={container} initial="hidden" animate="show">
+      <motion.div variants={item}>
+        <PageHeader
+          title="الكوبونات"
+          subtitle="إدارة كوبونات الخصم والعروض الترويجية"
+          actions={
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" icon={<Download size={16} />} onClick={handleExport}>تصدير</Button>
+              <Button icon={<Plus size={16} />} onClick={openCreate}>إنشاء كوبون</Button>
+            </div>
+          }
+        />
+      </motion.div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={<Ticket size={20} />} label="إجمالي الكوبونات" value={totalItems} color="primary" />
-        <StatCard icon={<BarChart3 size={20} />} label="نشط" value={activeCount} change="" changeType="up" color="success" />
+        <StatCard icon={<BarChart3 size={20} />} label="نشط" value={activeCount} color="success" />
         <StatCard icon={<BarChart3 size={20} />} label="منتهي" value={expiredCount} color="danger" />
-        <StatCard icon={<DollarSign size={20} />} label="إجمالي الإيرادات" value={formatCurrency(totalRevenue)} change="" changeType="up" color="warning" />
-      </div>
+        <StatCard icon={<Percent size={20} />} label="نسبة الاستخدام" value={`${usageRate}%`} color="warning" />
+      </motion.div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <motion.div variants={item} className="flex flex-wrap items-center gap-3">
         <SearchInput placeholder="بحث بالكود أو الوصف..." value={search} onChange={setSearch} className="w-64" />
         <Select options={[{ value: "", label: "جميع الحالات" }, { value: "active", label: "نشط" }, { value: "expired", label: "منتهي" }, { value: "disabled", label: "معطّل" }]} value={filters.status || ""} onChange={(e) => setFilter("status", e.target.value)} />
         <Select options={[{ value: "", label: "جميع الأنواع" }, { value: "percentage", label: "نسبة مئوية" }, { value: "fixed", label: "مبلغ ثابت" }, { value: "free_shipping", label: "شحن مجاني" }, { value: "buy_x_get_y", label: "اشترِ X احصل على Y" }]} value={filters.type || ""} onChange={(e) => setFilter("type", e.target.value)} />
-      </div>
+      </motion.div>
 
-      <DataTable
-        columns={columns}
-        data={paginatedData}
-        emptyMessage="لا توجد كوبونات"
-        rowKey="id"
-        sortable
-        pagination={{ currentPage: page, totalPages, totalItems, itemsPerPage: perPage, onPageChange: setPage, onItemsPerPageChange: setPerPage }}
-        striped
-      />
+      <motion.div variants={item}>
+        <DataTable
+          columns={columns}
+          data={paginatedData}
+          emptyMessage="لا توجد كوبونات"
+          rowKey="id"
+          sortable
+          pagination={{ currentPage: page, totalPages, totalItems, itemsPerPage: perPage, onPageChange: setPage, onItemsPerPageChange: setPerPage }}
+          striped
+        />
+      </motion.div>
 
       <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="حذف الكوبون" message={`هل أنت متأكد من حذف كود "${deleteTarget?.code}"؟ لا يمكن التراجع عن هذا الإجراء.`} confirmLabel="حذف" cancelLabel="إلغاء" variant="danger" />
 
@@ -325,8 +364,8 @@ export default function CouponsPage() {
             )}
 
             <div className="grid grid-cols-2 gap-4">
-              <Input label="الحد الأدنى للطلب" type="number" value={formMinOrder} onChange={(e) => setFormMinOrder(Number(e.target.value))} helperText="0 للحد الأدنى" />
-              <Input label="الحد الأقصى للاستخدام الكلي" type="number" value={formMaxUses} onChange={(e) => setFormMaxUses(Number(e.target.value))} helperText="0 للاستخدام غير المحدود" />
+              <Input label="الحد الأدنى للطلب" type="number" value={formMinOrder} onChange={(e) => setFormMinOrder(Number(e.target.value))} />
+              <Input label="الحد الأقصى للاستخدام الكلي" type="number" value={formMaxUses} onChange={(e) => setFormMaxUses(Number(e.target.value))} />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -335,7 +374,7 @@ export default function CouponsPage() {
             </div>
 
             {formAppliesTo !== "all" && (
-              <Input label="الأهداف المحددة" value={formTargetNames} onChange={(e) => setFormTargetNames(e.target.value)} placeholder="افصل بين الأسماء بفاصلة" helperText={formAppliesTo === "products" ? "أسماء المنتجات" : formAppliesTo === "categories" ? "أسماء التصنيفات" : "أسماء العملاء أو مجموعاتهم"} />
+              <Input label="الأهداف المحددة" value={formTargetNames} onChange={(e) => setFormTargetNames(e.target.value)} placeholder="افصل بين الأسماء بفاصلة" />
             )}
 
             <div className="grid grid-cols-2 gap-4">
@@ -343,15 +382,15 @@ export default function CouponsPage() {
               <Input label="تاريخ النهاية" type="date" value={formEndDate} onChange={(e) => setFormEndDate(e.target.value)} />
             </div>
 
-            <Toggle checked={formFirstOrder} onChange={setFormFirstOrder} label="الطلب الأول فقط" description="limit this coupon to customers' first order" />
+            <Toggle checked={formFirstOrder} onChange={setFormFirstOrder} label="الطلب الأول فقط" description="limit this coupon to customers first order" />
 
-            <div className="flex justify-end gap-3 pt-2 border-t border-border">
+            <div className="flex justify-end gap-3 pt-4 border-t border-border">
               <Button variant="secondary" onClick={() => { setModalOpen(false); setEditTarget(null); }}>إلغاء</Button>
               <Button onClick={handleSave}>{editTarget ? "حفظ التعديلات" : "إنشاء الكوبون"}</Button>
             </div>
           </div>
         </Modal>
       )}
-    </div>
+    </motion.div>
   );
 }

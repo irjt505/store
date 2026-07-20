@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { Settings2, CreditCard, MessageCircle, BarChart3, Search, Archive, Zap, Download } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -11,6 +12,8 @@ import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
+
+const fadeUp = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } };
 
 type Plugin = {
   id: string; name: string; description: string; version: string; icon: typeof CreditCard; active: boolean; color: string; bg: string;
@@ -58,24 +61,32 @@ export default function PluginsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="مدير الإضافات" subtitle="إدارة الإضافات والتكاملات" actions={<Button variant="secondary" icon={<Settings2 size={16} />} onClick={() => setInstallModal(true)}>تثبيت إضافة جديدة</Button>} />
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {plugins.map((plugin) => {
+        {plugins.map((plugin, idx) => {
           const Icon = plugin.icon;
           return (
-            <Card key={plugin.id} padding="md" className={cn("transition-all", !plugin.active && "opacity-70")}>
-              <div className="flex items-start justify-between mb-4">
-                <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", plugin.bg)}><span className={plugin.color}><Icon size={24} /></span></div>
-                <Toggle checked={plugin.active} onChange={() => togglePlugin(plugin.id)} />
-              </div>
-              <div className="space-y-1 mb-4">
-                <div className="flex items-center gap-2"><h3 className="font-semibold text-text">{plugin.name}</h3><Badge variant="default">v{plugin.version}</Badge></div>
-                <p className="text-sm text-text-secondary">{plugin.description}</p>
-              </div>
-              <div className="pt-4 border-t border-border flex items-center justify-between">
-                <Badge variant={plugin.active ? "success" : "default"} dot>{plugin.active ? "مفعّل" : "معطّل"}</Badge>
-                <Button variant="ghost" size="sm" icon={<Settings2 size={14} />} onClick={() => success("تكوين", `تم فتح إعدادات ${plugin.name}`)}>تكوين</Button>
-              </div>
-            </Card>
+            <motion.div key={plugin.id} initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: idx * 0.04 }}>
+              <Card padding="md" className={cn("transition-all", !plugin.active && "opacity-70")}>
+                <div className="flex items-start justify-between mb-4">
+                  <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", plugin.bg)}>
+                    <span className={plugin.color}><Icon size={24} /></span>
+                  </div>
+                  <Toggle checked={plugin.active} onChange={() => togglePlugin(plugin.id)} />
+                </div>
+                <div className="space-y-1 mb-4">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-text">{plugin.name}</h3>
+                    <Badge variant="default">v{plugin.version}</Badge>
+                  </div>
+                  <p className="text-sm text-text-secondary">{plugin.description}</p>
+                </div>
+                <div className="pt-4 border-t border-border flex items-center justify-between">
+                  <Badge variant={plugin.active ? "success" : "default"} dot>{plugin.active ? "مفعّل" : "معطّل"}</Badge>
+                  <Button variant="ghost" size="sm" icon={<Settings2 size={14} />} onClick={() => success("تكوين", `تم فتح إعدادات ${plugin.name}`)}>تكوين</Button>
+                </div>
+              </Card>
+            </motion.div>
           );
         })}
       </div>
@@ -86,7 +97,7 @@ export default function PluginsPage() {
             <Input label="بحث عن إضافة" value={pluginSearch} onChange={(e) => setPluginSearch(e.target.value)} placeholder="اكتب اسم الإضافة..." icon={<Search size={16} />} />
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {availablePlugins.map((plugin) => (
-                <div key={plugin.id} className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-surface-hover transition-colors">
+                <div key={plugin.id} className="flex items-center justify-between p-3 rounded-xl border border-border hover:bg-surface-hover transition-colors">
                   <div>
                     <p className="text-sm font-medium text-text">{plugin.name}</p>
                     <p className="text-xs text-text-muted">{plugin.description}</p>

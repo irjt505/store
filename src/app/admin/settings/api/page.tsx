@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
+import { Toggle } from "@/components/ui/Toggle";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { useCrud } from "@/lib/hooks/useCrud";
@@ -138,10 +139,7 @@ export default function APIKeysPage() {
               <label className="block text-sm font-medium text-text">الصلاحيات</label>
               <div className="space-y-2">
                 {["قراءة", "كتابة", "حذف"].map((perm) => (
-                  <label key={perm} className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={formPerms.includes(perm)} onChange={() => togglePerm(perm)} className="rounded border-border text-primary focus:ring-primary/20" />
-                    <span className="text-sm text-text">{perm}</span>
-                  </label>
+                  <Toggle key={perm} checked={formPerms.includes(perm)} onChange={() => togglePerm(perm)} label={perm} />
                 ))}
               </div>
             </div>

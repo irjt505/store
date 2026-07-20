@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/Select";
 import { DataTable } from "@/components/ui/DataTable";
 import { SearchInput } from "@/components/ui/SearchInput";
@@ -406,7 +407,7 @@ export default function MembershipsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-text mb-1.5">المميزات (كل ميزة في سطر)</label>
-              <textarea className="w-full h-28 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none" value={tierFormFeatures} onChange={(e) => setTierFormFeatures(e.target.value)} placeholder={"مميزة 1\nمميزة 2\nمميزة 3"} />
+              <Textarea value={tierFormFeatures} onChange={(e) => setTierFormFeatures(e.target.value)} placeholder={"مميزة 1\nمميزة 2\nمميزة 3"} rows={5} className="resize-none" />
             </div>
             <div className="flex items-center justify-between">
               <Toggle checked={tierFormStatus === "active"} onChange={(checked) => setTierFormStatus(checked ? "active" : "inactive")} label="تفعيل المنصة" description={tierFormStatus === "active" ? "المنصة متاحة حالياً" : "المنصة غير متاحة"} />

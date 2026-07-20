@@ -1,14 +1,15 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { Plus, Pencil, Trash2, Eye, Users, TrendingUp, DollarSign, Copy } from "lucide-react";
+import { motion } from "framer-motion";
+import { Plus, Pencil, Trash2, Eye, Users, TrendingUp, DollarSign, Copy, MousePointerClick, Award } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { DataTable } from "@/components/ui/DataTable";
+import { StatCard } from "@/components/ui/StatCard";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -30,6 +31,16 @@ type Affiliate = {
   status: "active" | "inactive" | "pending";
   joinDate: string;
   payoutMethod: string;
+};
+
+const container = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0 },
 };
 
 const initialAffiliates: Affiliate[] = [
@@ -71,15 +82,11 @@ export default function AffiliatesPage() {
 
   const {
     data: affiliates,
-    filteredData,
     paginatedData,
     search,
     setSearch,
     filters,
     setFilter,
-    sortKey,
-    sortDir,
-    setSort,
     page,
     setPage,
     perPage,
@@ -100,7 +107,6 @@ export default function AffiliatesPage() {
   const totalEarnings = useMemo(() => affiliates.reduce((s, a) => s + a.earnings, 0), [affiliates]);
   const totalConversions = useMemo(() => affiliates.reduce((s, a) => s + a.conversions, 0), [affiliates]);
   const activeAffiliates = useMemo(() => affiliates.filter((a) => a.status === "active").length, [affiliates]);
-  const totalClicks = useMemo(() => affiliates.reduce((s, a) => s + a.clicks, 0), [affiliates]);
 
   const openAdd = useCallback(() => {
     setEditTarget(null);
@@ -165,7 +171,7 @@ export default function AffiliatesPage() {
       key: "code" as const, label: "الكود", sortable: true,
       render: (v: unknown) => (
         <div className="flex items-center gap-2">
-          <code className="text-xs bg-bg px-2 py-1 rounded border border-border font-mono">{String(v)}</code>
+          <code className="text-xs bg-surface-hover px-2 py-1 rounded-lg border border-border font-mono">{String(v)}</code>
           <button onClick={() => handleCopy(String(v))} className="text-text-muted hover:text-primary cursor-pointer"><Copy size={12} /></button>
         </div>
       ),
@@ -176,9 +182,8 @@ export default function AffiliatesPage() {
         <span className="font-semibold text-primary">{row.commissionType === "percentage" ? `${row.commission}%` : formatCurrency(row.commission)}</span>
       ),
     },
-    { key: "clicks" as const, label: "الزيارات", sortable: true },
-    { key: "conversions" as const, label: "التحويلات", sortable: true },
-    { key: "earnings" as const, label: "الأرباح", sortable: true, render: (v: unknown) => <span className="font-semibold text-success">{formatCurrency(Number(v))}</span> },
+    { key: "conversions" as const, label: "الإحالات", sortable: true },
+    { key: "earnings" as const, label: "العمولات", sortable: true, render: (v: unknown) => <span className="font-semibold text-success">{formatCurrency(Number(v))}</span> },
     { key: "status" as const, label: "الحالة", sortable: true, render: (v: unknown) => getStatusBadge(v as Affiliate["status"]) },
     {
       key: "actions" as const, label: "الإجراءات", className: "w-24",
@@ -193,51 +198,54 @@ export default function AffiliatesPage() {
   ], [openEdit, handleCopy]);
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="نظام الأفلييت" subtitle="إدارة المسوقين بالعمولة وتتبع أرباحهم" actions={<Button icon={<Plus size={16} />} onClick={openAdd}>إضافة مسوق</Button>} />
+    <motion.div className="space-y-6" variants={container} initial="hidden" animate="show">
+      <motion.div variants={item}>
+        <PageHeader title="التسويق بالعمولة" subtitle="إدارة المسوقين بالعمولة وتتبع أرباحهم" actions={<Button icon={<Plus size={16} />} onClick={openAdd}>إضافة مسوق</Button>} />
+      </motion.div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card padding="sm"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10"><Users size={20} className="text-primary" /></div><div><p className="text-2xl font-bold text-text">{activeAffiliates}</p><p className="text-xs text-text-muted">مسوق نشط</p></div></div></Card>
-        <Card padding="sm"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10"><TrendingUp size={20} className="text-info" /></div><div><p className="text-2xl font-bold text-text">{totalClicks.toLocaleString("ar")}</p><p className="text-xs text-text-muted">إجمالي الزيارات</p></div></div></Card>
-        <Card padding="sm"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10"><Badge variant="success" className="text-lg">{totalConversions}</Badge></div><div><p className="text-2xl font-bold text-text">{totalConversions}</p><p className="text-xs text-text-muted">التحويلات</p></div></div></Card>
-        <Card padding="sm"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10"><DollarSign size={20} className="text-warning" /></div><div><p className="text-2xl font-bold text-text">{formatCurrency(totalEarnings)}</p><p className="text-xs text-text-muted">إجمالي أرباح المسوقين</p></div></div></Card>
-      </div>
+      <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <StatCard icon={<Users size={20} />} label="إجمالي المسوقين" value={totalItems} color="primary" />
+        <StatCard icon={<Award size={20} />} label="نشط" value={activeAffiliates} color="success" />
+        <StatCard icon={<DollarSign size={20} />} label="إجمالي العمولات" value={formatCurrency(totalEarnings)} color="warning" />
+      </motion.div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <motion.div variants={item} className="flex flex-wrap items-center gap-3">
         <SearchInput placeholder="بحث بالاسم أو البريد أو الكود..." value={search} onChange={setSearch} className="w-72" />
         <Select options={statusOptions} value={filters.status || ""} onChange={(e) => setFilter("status", e.target.value)} />
-      </div>
+      </motion.div>
 
-      <DataTable
-        columns={columns}
-        data={paginatedData}
-        emptyMessage="لا يوجد مسوقين"
-        rowKey="id"
-        sortable
-        pagination={{
-          currentPage: page,
-          totalPages,
-          totalItems,
-          itemsPerPage: perPage,
-          onPageChange: setPage,
-          onItemsPerPageChange: setPerPage,
-        }}
-        striped
-      />
+      <motion.div variants={item}>
+        <DataTable
+          columns={columns}
+          data={paginatedData}
+          emptyMessage="لا يوجد مسوقين"
+          rowKey="id"
+          sortable
+          pagination={{
+            currentPage: page,
+            totalPages,
+            totalItems,
+            itemsPerPage: perPage,
+            onPageChange: setPage,
+            onItemsPerPageChange: setPerPage,
+          }}
+          striped
+        />
+      </motion.div>
 
       <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="حذف المسوق" message={`هل أنت متأكد من حذف "${deleteTarget?.name}"؟ لا يمكن التراجع عن هذا الإجراء.`} confirmLabel="حذف" cancelLabel="إلغاء" variant="danger" />
 
       {(addModal || editTarget) && (
         <Modal open onClose={() => { setAddModal(false); setEditTarget(null); }} title={editTarget ? "تعديل المسوق" : "إضافة مسوق جديد"} size="md">
           <div className="space-y-4">
-            <Input label="الاسم" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="أدخل اسم المسوق" required />
-            <Input label="البريد الإلكتروني" type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@example.com" dir="ltr" required />
+            <Input label="الاسم" value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="أدخل اسم المسوق" />
+            <Input label="البريد الإلكتروني" type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@example.com" dir="ltr" />
             <div className="grid grid-cols-2 gap-4">
               <Select label="نوع العمولة" options={[{ value: "percentage", label: "نسبة مئوية" }, { value: "fixed", label: "مبلغ ثابت" }]} value={formCommissionType} onChange={(e) => setFormCommissionType(e.target.value as "percentage" | "fixed")} />
               <Input label="العمولة" type="number" value={formCommission} onChange={(e) => setFormCommission(Number(e.target.value))} placeholder="0" />
             </div>
             <Select label="طريقة الدفع" options={[{ value: "تحويل بنكي", label: "تحويل بنكي" }, { value: "PayPal", label: "PayPal" }]} value={formPayoutMethod} onChange={(e) => setFormPayoutMethod(e.target.value)} />
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 pt-4 border-t border-border">
               <Button variant="secondary" onClick={() => { setAddModal(false); setEditTarget(null); }}>إلغاء</Button>
               <Button onClick={handleSave}>{editTarget ? "حفظ التعديلات" : "إضافة"}</Button>
             </div>
@@ -251,7 +259,7 @@ export default function AffiliatesPage() {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div><p className="text-text-muted">الاسم</p><p className="font-medium">{viewModal.name}</p></div>
               <div><p className="text-text-muted">البريد</p><p className="font-medium" dir="ltr">{viewModal.email}</p></div>
-              <div><p className="text-text-muted">كود الإحالة</p><code className="bg-bg px-2 py-1 rounded border border-border font-mono">{viewModal.code}</code></div>
+              <div><p className="text-text-muted">كود الإحالة</p><code className="bg-surface-hover px-2 py-1 rounded-lg border border-border font-mono">{viewModal.code}</code></div>
               <div><p className="text-text-muted">العمولة</p><p className="font-semibold text-primary">{viewModal.commissionType === "percentage" ? `${viewModal.commission}%` : formatCurrency(viewModal.commission)}</p></div>
               <div><p className="text-text-muted">الزيارات</p><p>{viewModal.clicks.toLocaleString("ar")}</p></div>
               <div><p className="text-text-muted">التحويلات</p><p>{viewModal.conversions}</p></div>
@@ -263,7 +271,7 @@ export default function AffiliatesPage() {
               <div>
                 <p className="text-text-muted">رابط الإحالة</p>
                 <div className="flex items-center gap-2">
-                  <code className="text-xs bg-bg px-2 py-1 rounded border border-border font-mono">store.com/ref/{viewModal.code}</code>
+                  <code className="text-xs bg-surface-hover px-2 py-1 rounded-lg border border-border font-mono">store.com/ref/{viewModal.code}</code>
                   <Button variant="ghost" size="sm" icon={<Copy size={12} />} onClick={() => handleCopy(`https://store.com/ref/${viewModal.code}`)} />
                 </div>
               </div>
@@ -275,6 +283,6 @@ export default function AffiliatesPage() {
           </div>
         </Modal>
       )}
-    </div>
+    </motion.div>
   );
 }

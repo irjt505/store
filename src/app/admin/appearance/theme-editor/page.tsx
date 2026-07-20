@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Save, Undo2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Save, Undo2, Palette, Type, Layout, Sliders } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -68,14 +69,14 @@ export default function ThemeEditorPage() {
 
   const handleReset = useCallback(() => {
     setConfig(original);
-    success("تمت المعاينة", "تمت إعادة تعيين السمة للإعدادات الافتراضية");
+    success("تمت إعادة التعيين", "تمت إعادة تعيين السمة للإعدادات الافتراضية");
   }, [original, success]);
 
   const tabs = [
-    { key: "colors", label: "الألوان" },
-    { key: "typography", label: "الخطوط" },
-    { key: "borders", label: "الحواف" },
-    { key: "layout", label: "التخطيط" },
+    { key: "colors", label: "الألوان", icon: <Palette size={16} /> },
+    { key: "typography", label: "الخطوط", icon: <Type size={16} /> },
+    { key: "borders", label: "الحواف", icon: <Sliders size={16} /> },
+    { key: "layout", label: "التخطيط", icon: <Layout size={16} /> },
   ];
 
   return (
@@ -88,7 +89,12 @@ export default function ThemeEditorPage() {
       } />
 
       <div className="flex gap-6 min-h-[600px]">
-        <div className="flex-[3] rounded-xl border border-border overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, x: 8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="flex-[3] rounded-xl border border-border overflow-hidden"
+        >
           <div className="h-8 bg-bg border-b border-border flex items-center px-4 gap-2">
             <span className="w-3 h-3 rounded-full bg-red-400" />
             <span className="w-3 h-3 rounded-full bg-yellow-400" />
@@ -127,9 +133,14 @@ export default function ThemeEditorPage() {
               <span className="bg-white/90 px-6 py-3 rounded-lg text-sm font-medium text-text-secondary shadow-lg">معاينة مباشرة</span>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="flex-[2]">
+        <motion.div
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="flex-[2]"
+        >
           <Card padding="none">
             <Tabs tabs={tabs} defaultKey="colors">
               {((key: string) => (
@@ -203,7 +214,7 @@ export default function ThemeEditorPage() {
               )) as unknown as React.ReactNode}
             </Tabs>
           </Card>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

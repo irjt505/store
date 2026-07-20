@@ -1,13 +1,16 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Upload, Trash2, FileImage, Film, FileText, CheckSquare, Square } from "lucide-react";
+import { motion } from "framer-motion";
+import { Upload, Trash2, FileImage, Film, FileText, CheckSquare, Square, Search } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Tabs } from "@/components/ui/Tabs";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import { cn } from "@/lib/utils";
 
@@ -41,9 +44,12 @@ export default function MediaPage() {
   const { success, info } = useToast();
   const [selected, setSelected] = useState<number[]>([]);
   const [filter, setFilter] = useState("all");
+  const [search, setSearch] = useState("");
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
-  const filtered = filter === "all" ? mediaItems : mediaItems.filter((m) => m.type === filter);
+  const filtered = (filter === "all" ? mediaItems : mediaItems.filter((m) => m.type === filter)).filter(
+    (m) => !search || m.name.includes(search)
+  );
 
   const toggleSelect = useCallback((id: number) => {
     setSelected((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
@@ -61,35 +67,78 @@ export default function MediaPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="مدير الوسائط" subtitle="إدارة ملفات الوسائط والصور والمستندات" actions={<Button icon={<Upload size={16} />} onClick={() => info("الرفع", "تم فتح نافذة رفع الملفات")}>رفع ملفات</Button>} />
-      <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface p-10 transition-colors hover:border-primary/40 hover:bg-primary-light/10 cursor-pointer" onClick={() => info("الرفع", "تم فتح نافذة رفع الملفات")}>
+      <PageHeader title="المكتبة" subtitle="إدارة ملفات الوسائط والصور والمستندات" actions={<Button icon={<Upload size={16} />} onClick={() => info("الرفع", "تم فتح نافذة رفع الملفات")}>رفع ملف</Button>} />
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="flex items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface p-10 transition-colors hover:border-primary/40 hover:bg-primary-light/10 cursor-pointer"
+        onClick={() => info("الرفع", "تم فتح نافذة رفع الملفات")}
+      >
         <div className="text-center">
           <Upload size={36} className="mx-auto text-text-muted mb-3" />
           <p className="text-sm font-medium text-text">اسحب الملفات هنا أو انقر للرفع</p>
           <p className="mt-1 text-xs text-text-muted">PNG, JPG, GIF, PDF, MP4 - الحد الأقصى 50 ميجا</p>
         </div>
-      </div>
-      <div className="flex items-center justify-between gap-4">
-        <Tabs tabs={filterTabs} onChange={setFilter}><div /></Tabs>
-        {selected.length > 0 && <Button variant="danger" size="sm" icon={<Trash2 size={14} />} onClick={() => setBulkDeleteOpen(true)}>حذف المحدد ({selected.length})</Button>}
-      </div>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
-        {filtered.map((item) => (
-          <div key={item.id} className={cn("group relative rounded-xl border bg-surface overflow-hidden transition-all", selected.includes(item.id) ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-border/80")}>
-            <button onClick={() => toggleSelect(item.id)} className="absolute top-2 left-2 z-10 cursor-pointer">
-              {selected.includes(item.id) ? <CheckSquare size={20} className="text-primary" /> : <Square size={20} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />}
-            </button>
-            <div className={cn("flex h-36 items-center justify-center", item.color)}>{typeIcons[item.type]}</div>
-            <div className="p-3">
-              <p className="text-sm font-medium text-text truncate">{item.name}</p>
-              <div className="mt-1 flex items-center justify-between">
-                <span className="text-xs text-text-muted">{item.size}</span>
-                <Badge variant={item.type === "image" ? "info" : item.type === "video" ? "warning" : "danger"}>{item.type === "image" ? "صورة" : item.type === "video" ? "فيديو" : "مستند"}</Badge>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.15 }}
+        className="flex items-center justify-between gap-4"
+      >
+        <div className="flex items-center gap-3">
+          <SearchInput placeholder="بحث في الملفات..." value={search} onChange={setSearch} className="w-56" />
+          <Tabs tabs={filterTabs} onChange={setFilter}><div /></Tabs>
+        </div>
+        {selected.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Badge variant="info">{selected.length} محدد</Badge>
+            <Button variant="danger" size="sm" icon={<Trash2 size={14} />} onClick={() => setBulkDeleteOpen(true)}>حذف المحدد</Button>
+          </div>
+        )}
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+        className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4"
+      >
+        {filtered.map((item, i) => (
+          <motion.div
+            key={item.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, delay: 0.02 * i }}
+          >
+            <div className={cn("group relative rounded-xl border bg-surface overflow-hidden transition-all", selected.includes(item.id) ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/50")}>
+              <button onClick={() => toggleSelect(item.id)} className="absolute top-2 left-2 z-10 cursor-pointer">
+                {selected.includes(item.id) ? <CheckSquare size={20} className="text-primary" /> : <Square size={20} className="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />}
+              </button>
+              <div className={cn("flex h-36 items-center justify-center", item.color)}>{typeIcons[item.type]}</div>
+              <div className="p-3">
+                <p className="text-sm font-medium text-text truncate">{item.name}</p>
+                <div className="mt-1 flex items-center justify-between">
+                  <span className="text-xs text-text-muted">{item.size}</span>
+                  <Badge variant={item.type === "image" ? "info" : item.type === "video" ? "warning" : "danger"} size="sm">{item.type === "image" ? "صورة" : item.type === "video" ? "فيديو" : "مستند"}</Badge>
+                </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
+
+      {filtered.length === 0 && (
+        <EmptyState
+          icon={<FileImage size={24} />}
+          title="لا توجد ملفات"
+          description="لم يتم العثور على ملفات تطابق البحث"
+        />
+      )}
+
       <ConfirmDialog open={bulkDeleteOpen} onClose={() => setBulkDeleteOpen(false)} onConfirm={handleBulkDelete} title="حذف المحدد" message={`هل أنت متأكد من حذف ${selected.length} ملفات؟ لا يمكن التراجع.`} confirmLabel="حذف" cancelLabel="إلغاء" variant="danger" />
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { Plus, Pencil, Trash2, RotateCw, ExternalLink } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -9,13 +10,16 @@ import { Badge } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { useCrud } from "@/lib/hooks/useCrud";
 import { formatDateTime, generateId } from "@/lib/utils";
 
+const fadeUp = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } };
+
 type Webhook = {
-  id: string; url: string; events: string; active: boolean; lastSent: string;   secret: string;
+  id: string; url: string; events: string; active: boolean; lastSent: string; secret: string;
 };
 
 const initialWebhooks: Webhook[] = [
@@ -23,11 +27,6 @@ const initialWebhooks: Webhook[] = [
   { id: "2", url: "https://erp.company.com/inventory", events: "product.updated, stock.changed", active: true, lastSent: "2026-07-18T09:15:00", secret: "whsec_def456" },
   { id: "3", url: "https://analytics.example.com/events", events: "order.completed, payment.received", active: false, lastSent: "2026-07-15T14:00:00", secret: "" },
   { id: "4", url: "https://slack.company.com/incoming", events: "order.created", active: true, lastSent: "2026-07-18T10:00:00", secret: "whsec_ghi789" },
-];
-
-const eventOptions = [
-  { value: "order.created", label: "طلب جديد" }, { value: "order.updated", label: "تحديث الطلب" }, { value: "order.completed", label: "إتمام الطلب" },
-  { value: "product.updated", label: "تحديث المنتج" }, { value: "stock.changed", label: "تغيير المخزون" }, { value: "payment.received", label: "استلام الدفع" },
 ];
 
 export default function WebhooksPage() {
@@ -44,9 +43,6 @@ export default function WebhooksPage() {
     paginatedData,
     search,
     setSearch,
-    sortKey,
-    sortDir,
-    setSort,
     page,
     setPage,
     perPage,
@@ -98,7 +94,7 @@ export default function WebhooksPage() {
 
   const handleTest = useCallback((w: Webhook) => {
     info("جاري الإرسال", `جاري إرسال طلب اختباري إلى ${w.url}`);
-  }, []);
+  }, [info]);
 
   const columns = [
     { key: "url" as const, label: "الرابط", sortable: true, render: (v: unknown) => <div className="flex items-center gap-2"><span className="font-mono text-xs text-text truncate max-w-[250px]">{String(v)}</span><ExternalLink size={12} className="text-text-muted" /></div> },
@@ -117,11 +113,14 @@ export default function WebhooksPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="Webhooks" subtitle="إدارة روابط الاستدعاء التلقائي للأنظمة الخارجية" actions={<Button icon={<Plus size={16} />} onClick={openCreate}>إضافة webhook</Button>} />
-      <Card padding="none">
-        <div className="p-4">
-          <DataTable columns={columns} data={paginatedData} emptyMessage="لا توجد webhooks" rowKey="id" sortable pagination={{ currentPage: page, totalPages, totalItems, itemsPerPage: perPage, onPageChange: setPage, onItemsPerPageChange: setPerPage }} />
-        </div>
-      </Card>
+
+      <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.05 }}>
+        <Card padding="none">
+          <div className="p-4">
+            <DataTable columns={columns} data={paginatedData} emptyMessage="لا توجد webhooks" rowKey="id" sortable pagination={{ currentPage: page, totalPages, totalItems, itemsPerPage: perPage, onPageChange: setPage, onItemsPerPageChange: setPerPage }} />
+          </div>
+        </Card>
+      </motion.div>
 
       <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="حذف Webhook" message="هل أنت متأكد من حذف هذا الـ webhook؟ لا يمكن التراجع." confirmLabel="حذف" cancelLabel="إلغاء" variant="danger" />
 

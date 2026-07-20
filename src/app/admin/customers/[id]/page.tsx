@@ -28,6 +28,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Toggle } from "@/components/ui/Toggle";
 import { Modal } from "@/components/ui/Modal";
 import { StatCard } from "@/components/ui/StatCard";
+import { DataTable } from "@/components/ui/DataTable";
 import { useToast } from "@/components/ui/Toast";
 import { formatCurrency, formatDate, formatDateTime, generateId } from "@/lib/utils";
 
@@ -267,36 +268,17 @@ export default function CustomerDetailPage({
           </Card>
 
           <Card header={<h3 className="font-semibold text-text flex items-center gap-2"><ShoppingCart size={16} /> سجل الطلبات</h3>}>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-right py-3 px-2 font-medium text-text-secondary">رقم الطلب</th>
-                    <th className="text-right py-3 px-2 font-medium text-text-secondary">التاريخ</th>
-                    <th className="text-right py-3 px-2 font-medium text-text-secondary">المنتجات</th>
-                    <th className="text-right py-3 px-2 font-medium text-text-secondary">المجموع</th>
-                    <th className="text-right py-3 px-2 font-medium text-text-secondary">الحالة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => (
-                    <tr key={order.id} className="border-b border-border-light last:border-0">
-                      <td className="py-3 px-2">
-                        <Link href={`/admin/orders/${order.id}`} className="text-primary hover:underline font-medium">
-                          {order.number}
-                        </Link>
-                      </td>
-                      <td className="py-3 px-2 text-text-secondary">{formatDate(order.date)}</td>
-                      <td className="py-3 px-2 text-text-secondary">{order.items} منتج</td>
-                      <td className="py-3 px-2 font-semibold text-text">{formatCurrency(order.total)}</td>
-                      <td className="py-3 px-2">
-                        <Badge variant={statusColors[order.status] || "default"}>{order.status}</Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              data={orders as unknown as Record<string, unknown>[]}
+              rowKey="id"
+              columns={[
+                { key: "number", label: "رقم الطلب", render: (_v: unknown, row: Record<string, unknown>) => <Link href={`/admin/orders/${String(row.id)}`} className="text-primary hover:underline font-medium">{String(row.number)}</Link> },
+                { key: "date", label: "التاريخ", render: (v: unknown) => <span className="text-text-secondary">{formatDate(String(v))}</span> },
+                { key: "items", label: "المنتجات", render: (v: unknown) => <span className="text-text-secondary">{String(v)} منتج</span> },
+                { key: "total", label: "المجموع", render: (v: unknown) => <span className="font-semibold text-text">{formatCurrency(Number(v))}</span> },
+                { key: "status", label: "الحالة", render: (v: unknown) => <Badge variant={statusColors[String(v)] || "default"}>{String(v)}</Badge> },
+              ]}
+            />
           </Card>
 
           <Card header={

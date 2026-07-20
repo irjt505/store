@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { ToggleGroup } from "@/components/ui/ToggleGroup";
 import { StatCard } from "@/components/ui/StatCard";
+import { DataTable } from "@/components/ui/DataTable";
 import { Users, Eye, ShoppingCart, TrendingUp, Download } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 
@@ -66,24 +67,16 @@ export default function AnalyticsPage() {
       </Card>
       <Card>
         <h3 className="text-lg font-semibold text-text mb-4">الزيارات حسب الدولة</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead><tr className="border-b border-border"><th className="text-right px-4 py-3 font-medium text-text-secondary">الدولة</th><th className="text-right px-4 py-3 font-medium text-text-secondary">الزيارات</th><th className="text-right px-4 py-3 font-medium text-text-secondary">الإيرادات</th><th className="text-right px-4 py-3 font-medium text-text-secondary">النسبة</th></tr></thead>
-            <tbody>
-              {countryData.map((c) => {
-                const maxV = countryData[0].visitors;
-                return (
-                  <tr key={c.country} className="border-b border-border-light last:border-0 hover:bg-surface-hover transition-colors">
-                    <td className="px-4 py-3 font-medium text-text">{c.country}</td>
-                    <td className="px-4 py-3 text-text-secondary">{c.visitors.toLocaleString("ar")}</td>
-                    <td className="px-4 py-3 font-semibold">{c.revenue.toLocaleString("ar-SA")} ر.س</td>
-                    <td className="px-4 py-3"><div className="flex items-center gap-2"><div className="h-2 w-24 rounded-full bg-border overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${(c.visitors / maxV) * 100}%` }} /></div><span className="text-xs text-text-muted">{Math.round((c.visitors / maxV) * 100)}%</span></div></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          data={countryData.map((c) => ({ ...c, percentage: Math.round((c.visitors / countryData[0].visitors) * 100) }))}
+          rowKey="country"
+          columns={[
+            { key: "country", label: "الدولة", render: (v: unknown) => <span className="font-medium text-text">{String(v)}</span> },
+            { key: "visitors", label: "الزيارات", render: (v: unknown) => <span className="text-text-secondary">{Number(v).toLocaleString("ar")}</span> },
+            { key: "revenue", label: "الإيرادات", render: (v: unknown) => <span className="font-semibold">{Number(v).toLocaleString("ar-SA")} ر.س</span> },
+            { key: "percentage", label: "النسبة", render: (v: unknown) => <div className="flex items-center gap-2"><div className="h-2 w-24 rounded-full bg-border overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${v}%` }} /></div><span className="text-xs text-text-muted">{String(v)}%</span></div> },
+          ]}
+        />
       </Card>
     </div>
   );

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { Plus, Pencil, Trash2, Eye, Tag, BarChart3, Zap, Package, Repeat } from "lucide-react";
+import { motion } from "framer-motion";
+import { Plus, Pencil, Trash2, Eye, Tag, BarChart3, Zap, Percent, DollarSign, ShoppingCart } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -13,6 +13,7 @@ import { SearchInput } from "@/components/ui/SearchInput";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Toggle } from "@/components/ui/Toggle";
+import { StatCard } from "@/components/ui/StatCard";
 import { useToast } from "@/components/ui/Toast";
 import { useCrud } from "@/lib/hooks/useCrud";
 import { formatCurrency, formatDate, generateId } from "@/lib/utils";
@@ -42,10 +43,20 @@ type Discount = {
 
 const typeLabels: Record<string, string> = { automatic: "تلقائي", coupon: "كوبون", flash_sale: "عرض لحظي", bundle: "حزمة" };
 const typeBadge: Record<string, "info" | "success" | "purple" | "warning"> = { automatic: "info", coupon: "success", flash_sale: "warning", bundle: "purple" };
-const ruleLabels: Record<string, string> = { percentage: "نسبة مئوية", fixed: "مبلغ ثابت", buy_x_get_y: "اشترِ X احصل على Y", volume: "كمي", tiered: "تدرج أسعار", category: "خصم تصنيف" };
+const ruleLabels: Record<string, string> = { percentage: "نسبة مئوية", fixed: "مبلغ ثابت", buy_x_get_y: "اشترِ X احصل على Y", volume: "كمي", tiered: "تسعير تدريجي", category: "خصم تصنيف" };
 const statusLabels: Record<string, string> = { active: "نشط", scheduled: "مجدول", expired: "منتهي", disabled: "معطل" };
 const statusBadge: Record<string, "success" | "info" | "warning" | "danger" | "default"> = { active: "success", scheduled: "info", expired: "warning", disabled: "danger" };
 const appliesToLabels: Record<string, string> = { all: "الكل", category: "تصنيف", product: "منتج", collection: "مجموعة" };
+
+const container = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.06 } },
+};
+
+const item = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0 },
+};
 
 const initialDiscounts: Discount[] = [
   { id: "1", name: "خصم المنتجات الجديدة 20%", type: "automatic", ruleType: "percentage", value: 20, buyQuantity: 0, getQuantity: 0, minPurchase: 50, minQuantity: 0, maxUses: 100, usedCount: 45, priority: 1, stackable: false, startDate: "2026-04-01", endDate: "2026-05-01", recurring: false, recurringType: "monthly", status: "active", appliesTo: "all", targetName: "الكل" },
@@ -206,7 +217,7 @@ export default function DiscountsPage() {
     { key: "value" as const, label: "القيمة", sortable: true, render: (_: unknown, row: Discount) => <span className="font-semibold text-primary">{formatValue(row)}</span> },
     { key: "priority" as const, label: "الأولوية", sortable: true, render: (v: unknown) => <Badge variant="info">{String(v)}</Badge> },
     { key: "appliesTo" as const, label: "ينطبق على", sortable: true, render: (_: unknown, row: Discount) => <div><span className="text-sm">{appliesToLabels[row.appliesTo]}</span>{row.appliesTo !== "all" && <span className="text-xs text-text-muted block">{row.targetName}</span>}</div> },
-    { key: "usedCount" as const, label: "الاستخدام", sortable: true, render: (_: unknown, row: Discount) => <span className={row.maxUses && row.usedCount >= row.maxUses ? "text-danger" : "text-text"}>{row.usedCount}{row.maxUses ? `/${row.maxUses}` : ""}</span> },
+    { key: "usedCount" as const, label: "الاستخدام", sortable: true, render: (_: unknown, row: Discount) => <span className={row.maxUses && row.usedCount >= row.maxUses ? "text-danger font-semibold" : "text-text"}>{row.usedCount}{row.maxUses ? `/${row.maxUses}` : ""}</span> },
     { key: "status" as const, label: "الحالة", sortable: true, render: (v: unknown) => <Badge variant={statusBadge[String(v)]} dot>{statusLabels[String(v)]}</Badge> },
     {
       key: "id" as const, label: "الإجراءات", className: "w-24",
@@ -221,24 +232,28 @@ export default function DiscountsPage() {
   ], [openEdit]);
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="الخصومات" subtitle="إدارة قواعد الخصومات المتقدمة والعروض" actions={<Button icon={<Plus size={16} />} onClick={openCreate}>إضافة خصم</Button>} />
+    <motion.div className="space-y-6" variants={container} initial="hidden" animate="show">
+      <motion.div variants={item}>
+        <PageHeader title="الخصومات المتقدمة" subtitle="إدارة قواعد الخصومات والعروض الترويجية" actions={<Button icon={<Plus size={16} />} onClick={openCreate}>إضافة خصم</Button>} />
+      </motion.div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card padding="sm"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10"><Tag size={20} className="text-primary" /></div><div><p className="text-2xl font-bold text-text">{totalItems}</p><p className="text-xs text-text-muted">إجمالي الخصومات</p></div></div></Card>
-        <Card padding="sm"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10"><Zap size={20} className="text-success" /></div><div><p className="text-2xl font-bold text-text">{activeCount}</p><p className="text-xs text-text-muted">خصومات نشطة</p></div></div></Card>
-        <Card padding="sm"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10"><BarChart3 size={20} className="text-warning" /></div><div><p className="text-2xl font-bold text-text">{formatCurrency(totalSavings)}</p><p className="text-xs text-text-muted">إجمالي التخفيضات</p></div></div></Card>
-      </div>
+      <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard icon={<Tag size={20} />} label="إجمالي الخصومات" value={totalItems} color="primary" />
+        <StatCard icon={<Zap size={20} />} label="خصومات نشطة" value={activeCount} color="success" />
+        <StatCard icon={<DollarSign size={20} />} label="إجمالي التخفيضات" value={formatCurrency(totalSavings)} color="warning" />
+      </motion.div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <motion.div variants={item} className="flex flex-wrap items-center gap-3">
         <SearchInput placeholder="بحث عن خصم..." value={search} onChange={setSearch} className="w-64" />
         <Select options={[{ value: "", label: "جميع الأنواع" }, { value: "automatic", label: "تلقائي" }, { value: "coupon", label: "كوبون" }, { value: "flash_sale", label: "عرض لحظي" }, { value: "bundle", label: "حزمة" }]} value={filters.type || ""} onChange={(e) => setFilter("type", e.target.value)} />
         <Select options={[{ value: "", label: "جميع الحالات" }, { value: "active", label: "نشط" }, { value: "scheduled", label: "مجدول" }, { value: "expired", label: "منتهي" }, { value: "disabled", label: "معطل" }]} value={filters.status || ""} onChange={(e) => setFilter("status", e.target.value)} />
-      </div>
+      </motion.div>
 
-      <DataTable columns={columns} data={paginatedData} emptyMessage="لا توجد خصومات" rowKey="id" sortable
-        pagination={{ currentPage: page, totalPages, totalItems, itemsPerPage: perPage, onPageChange: setPage, onItemsPerPageChange: setPerPage }}
-        striped />
+      <motion.div variants={item}>
+        <DataTable columns={columns} data={paginatedData} emptyMessage="لا توجد خصومات" rowKey="id" sortable
+          pagination={{ currentPage: page, totalPages, totalItems, itemsPerPage: perPage, onPageChange: setPage, onItemsPerPageChange: setPerPage }}
+          striped />
+      </motion.div>
 
       <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="حذف الخصم" message={`هل أنت متأكد من حذف "${deleteTarget?.name}"؟ لا يمكن التراجع عن هذا الإجراء.`} confirmLabel="حذف" cancelLabel="إلغاء" variant="danger" />
 
@@ -279,7 +294,7 @@ export default function DiscountsPage() {
             </div>
 
             <div className="grid grid-cols-3 gap-4">
-              <Input label="الأولوية" type="number" value={formPriority} onChange={(e) => setFormPriority(Number(e.target.value))} helperText="الأعلى أولاً" />
+              <Input label="الأولوية" type="number" value={formPriority} onChange={(e) => setFormPriority(Number(e.target.value))} />
               <Toggle checked={formStackable} onChange={setFormStackable} label="قابل للجمع" description="السماح بالجمع مع خصومات أخرى" />
               <Toggle checked={formRecurring} onChange={setFormRecurring} label="متكرر" description="تطبيق بشكل دوري" />
             </div>
@@ -288,7 +303,7 @@ export default function DiscountsPage() {
               <Select label="نوع التكرار" options={[{ value: "daily", label: "يومي" }, { value: "weekly", label: "أسبوعي" }, { value: "monthly", label: "شهري" }]} value={formRecurringType} onChange={(e) => setFormRecurringType(e.target.value as Discount["recurringType"])} />
             )}
 
-            <div className="flex justify-end gap-3 pt-2 border-t border-border">
+            <div className="flex justify-end gap-3 pt-4 border-t border-border">
               <Button variant="secondary" onClick={() => { setModalOpen(false); setEditing(null); }}>إلغاء</Button>
               <Button onClick={handleSave}>{editing ? "حفظ" : "إضافة"}</Button>
             </div>
@@ -318,6 +333,6 @@ export default function DiscountsPage() {
           </div>
         </Modal>
       )}
-    </div>
+    </motion.div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { Plus, Pencil, Trash2, Eye, Send, Mail, CheckCircle } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +13,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Tabs } from "@/components/ui/Tabs";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { SearchInput } from "@/components/ui/SearchInput";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import { useCrud } from "@/lib/hooks/useCrud";
 import { formatDate, generateId } from "@/lib/utils";
@@ -134,40 +136,67 @@ export default function EmailTemplatesPage() {
     <div className="space-y-6">
       <PageHeader title="قوالب البريد الإلكتروني" subtitle="إدارة قوالب الرسائل التلقائية" actions={<Button icon={<Plus size={16} />} onClick={openCreate}>قالب جديد</Button>} />
 
-      <SearchInput placeholder="بحث بالاسم أو الموضوع..." value={search} onChange={setSearch} className="w-72" />
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+      >
+        <SearchInput placeholder="بحث بالاسم أو الموضوع..." value={search} onChange={setSearch} className="w-72" />
+      </motion.div>
 
       <Tabs tabs={tabs} defaultKey="templates">
         {(activeKey: string) => {
           if (activeKey === "templates") {
             return (
-              <div className="space-y-4">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.15 }}
+                className="space-y-4"
+              >
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredData.map((t) => (
-                    <Card key={t.id} className={`cursor-pointer transition-all hover:shadow-md ${selectedTemplate?.id === t.id ? "ring-2 ring-primary" : ""}`} onClick={() => setSelectedTemplate(t)}>
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h3 className="font-semibold text-text">{t.name}</h3>
-                          <p className="text-xs text-text-muted mt-1" dir="ltr">{t.subject}</p>
+                  {filteredData.map((t, i) => (
+                    <motion.div
+                      key={t.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: 0.03 * i }}
+                    >
+                      <Card
+                        className={`cursor-pointer transition-all hover:shadow-md ${selectedTemplate?.id === t.id ? "ring-2 ring-primary" : ""}`}
+                        onClick={() => setSelectedTemplate(t)}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-text text-sm">{t.name}</h3>
+                            <p className="text-xs text-text-muted mt-1 truncate" dir="ltr">{t.subject}</p>
+                          </div>
+                          <Badge variant={categoryColors[t.category] || "default"} size="sm">{t.category}</Badge>
                         </div>
-                        <Badge variant={categoryColors[t.category] || "default"}>{t.category}</Badge>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-text-muted">
-                        <span>آخر تعديل: {t.lastEdited}</span>
-                        <button onClick={(e) => { e.stopPropagation(); toggleStatus(t); }}>
-                          <Badge variant={t.status === "active" ? "success" : "default"} dot className="cursor-pointer">{t.status === "active" ? "نشط" : "غير نشط"}</Badge>
-                        </button>
-                      </div>
-                      <div className="flex gap-2 mt-3 pt-3 border-t border-border" onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm" icon={<Pencil size={12} />} onClick={() => openEdit(t)}>تعديل</Button>
-                        <Button variant="ghost" size="sm" icon={<Eye size={12} />} onClick={() => setPreviewModal(t)}>معاينة</Button>
-                        <Button variant="ghost" size="sm" icon={<Send size={12} />} onClick={() => setTestModal(t)}>اختبار</Button>
-                        <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} className="text-danger hover:text-danger" onClick={() => setDeleteModal(t)} />
-                      </div>
-                    </Card>
+                        <div className="flex items-center justify-between text-xs text-text-muted mb-3">
+                          <span>آخر تعديل: {t.lastEdited}</span>
+                          <button onClick={(e) => { e.stopPropagation(); toggleStatus(t); }}>
+                            <Badge variant={t.status === "active" ? "success" : "default"} dot className="cursor-pointer">{t.status === "active" ? "نشط" : "غير نشط"}</Badge>
+                          </button>
+                        </div>
+                        <div className="flex gap-2 pt-3 border-t border-border" onClick={(e) => e.stopPropagation()}>
+                          <Button variant="ghost" size="sm" icon={<Pencil size={12} />} onClick={() => openEdit(t)}>تعديل</Button>
+                          <Button variant="ghost" size="sm" icon={<Eye size={12} />} onClick={() => setPreviewModal(t)}>معاينة</Button>
+                          <Button variant="ghost" size="sm" icon={<Send size={12} />} onClick={() => setTestModal(t)}>اختبار</Button>
+                          <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} className="text-danger hover:text-danger" onClick={() => setDeleteModal(t)} />
+                        </div>
+                      </Card>
+                    </motion.div>
                   ))}
                 </div>
-                {filteredData.length === 0 && <p className="text-center text-text-muted py-8">لا توجد قوالب تطابق البحث</p>}
-              </div>
+                {filteredData.length === 0 && (
+                  <EmptyState
+                    icon={<Mail size={24} />}
+                    title="لا توجد قوالب"
+                    description="لم يتم العثور على قوالب تطابق البحث"
+                  />
+                )}
+              </motion.div>
             );
           }
           return (
@@ -183,7 +212,7 @@ export default function EmailTemplatesPage() {
                       <label className="block text-sm font-medium text-text mb-1.5">المتغيرات المتاحة</label>
                       <div className="flex flex-wrap gap-2">
                         {["{{customer_name}}", "{{order_id}}", "{{store_name}}", "{{download_url}}", "{{product_name}}", "{{plan_name}}", "{{discount}}", "{{coupon_code}}", "{{reset_url}}", "{{review_url}}"].map((v) => (
-                          <code key={v} className="text-xs bg-bg px-2 py-1 rounded border border-border font-mono cursor-pointer hover:bg-primary/10" onClick={() => handleCopyVar(v)}>{v}</code>
+                          <code key={v} className="text-xs bg-bg px-2 py-1 rounded border border-border font-mono cursor-pointer hover:bg-primary/10 transition-colors" onClick={() => handleCopyVar(v)}>{v}</code>
                         ))}
                       </div>
                     </div>
@@ -228,7 +257,7 @@ export default function EmailTemplatesPage() {
 
       {(editModal || createModal) && (
         <Modal open onClose={() => { setEditModal(null); setCreateModal(false); }} title={editModal ? `تعديل — ${editModal.name}` : "قالب جديد"} size="lg">
-          <div className="space-y-4">
+          <div className="space-y-5">
             <Input label="اسم القالب" value={editForm.name} onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))} />
             <Input label="الموضوع" value={editForm.subject} onChange={(e) => setEditForm((p) => ({ ...p, subject: e.target.value }))} />
             <div>
@@ -240,7 +269,7 @@ export default function EmailTemplatesPage() {
               </div>
             </div>
             <Textarea label="محتوى الرسالة" value={editForm.body} onChange={(e) => setEditForm((p) => ({ ...p, body: e.target.value }))} rows={12} />
-            <div className="flex justify-end gap-3">
+            <div className="flex justify-end gap-3 pt-2 border-t border-border">
               <Button variant="secondary" onClick={() => { setEditModal(null); setCreateModal(false); }}>إلغاء</Button>
               <Button onClick={handleSaveEdit} icon={<CheckCircle size={14} />}>{editModal ? "حفظ التعديلات" : "إنشاء القالب"}</Button>
             </div>

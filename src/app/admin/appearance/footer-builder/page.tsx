@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { Save, Pencil, Trash2, Plus, GripVertical, Mail, Phone, MapPin, Globe, Share2, MessageCircle } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
+import { Toggle } from "@/components/ui/Toggle";
 import { useToast } from "@/components/ui/Toast";
 import { cn, generateId } from "@/lib/utils";
 
@@ -61,10 +63,6 @@ export default function FooterBuilderPage() {
     setConfig((prev) => ({ ...prev, social: { ...prev.social, [key]: value } }));
   }, []);
 
-  const updateNewsletter = useCallback((key: keyof FooterConfig["newsletter"], value: string | boolean) => {
-    setConfig((prev) => ({ ...prev, newsletter: { ...prev.newsletter, [key]: value } }));
-  }, []);
-
   const updateCopyright = useCallback((value: string) => {
     setConfig((prev) => ({ ...prev, copyright: { ...prev.copyright, text: value } }));
   }, []);
@@ -75,71 +73,117 @@ export default function FooterBuilderPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="بناء الفوتر" subtitle="تخصيص تذييل الموقع" actions={<Button icon={<Save size={16} />} onClick={handleSave}>حفظ</Button>} />
+      <PageHeader title="بناء التذييل" subtitle="تخصيص تذييل الموقع" actions={<Button icon={<Save size={16} />} onClick={handleSave}>حفظ</Button>} />
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-3 space-y-4">
-          <Card header={<div className="flex items-center gap-3"><GripVertical size={16} className="text-text-muted cursor-grab" /><span className="font-medium text-text">الأعمدة</span></div>} padding="md">
-            <div className="space-y-3">
-              {config.columns.map((col) => (
-                <div key={col.id} className="border border-border rounded-lg overflow-hidden">
-                  <div className="flex items-center justify-between px-4 py-3 bg-bg/50">
-                    <div className="flex items-center gap-3">
-                      <GripVertical size={14} className="text-text-muted cursor-grab" />
-                      <span className={cn("text-sm font-medium", col.enabled ? "text-text" : "text-text-muted")}>{col.title}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => toggleColumnEnabled(col.id)} className={cn("relative w-8 h-5 rounded-full transition-colors cursor-pointer", col.enabled ? "bg-primary" : "bg-border")}><span className={cn("absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform", col.enabled ? "right-3.5" : "right-0.5")} /></button>
-                      <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => toggleColumnEdit(col.id)} />
-                      <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} className="text-danger hover:text-danger" onClick={() => removeColumn(col.id)} />
-                    </div>
-                  </div>
-                  {col.editing && (
-                    <div className="px-4 py-3 border-t border-border space-y-3">
-                      <Input label="اسم العمود" value={col.title} onChange={(e) => setConfig((prev) => ({ ...prev, columns: prev.columns.map((c) => c.id === col.id ? { ...c, title: e.target.value } : c) }))} />
-                    </div>
-                  )}
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.05 }}>
+            <Card padding="md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-light">
+                  <GripVertical size={16} className="text-primary" />
                 </div>
-              ))}
-              <Button variant="outline" size="sm" icon={<Plus size={14} />} onClick={addColumn}>إضافة عمود</Button>
-            </div>
-          </Card>
-
-          <Card header={<div className="flex items-center gap-3"><GripVertical size={16} className="text-text-muted cursor-grab" /><span className="font-medium text-text">معلومات المتجر</span></div>} padding="md">
-            <div className="space-y-4">
-              <Input label="اسم المتجر" value={config.storeInfo.name} onChange={(e) => updateStoreInfo("name", e.target.value)} />
-              <Textarea label="وصف المتجر" rows={3} value={config.storeInfo.description} onChange={(e) => updateStoreInfo("description", e.target.value)} />
-              <Input label="العنوان" icon={<MapPin size={16} />} value={config.storeInfo.address} onChange={(e) => updateStoreInfo("address", e.target.value)} />
-              <div className="grid grid-cols-2 gap-4">
-                <Input label="الهاتف" icon={<Phone size={16} />} value={config.storeInfo.phone} onChange={(e) => updateStoreInfo("phone", e.target.value)} />
-                <Input label="البريد الإلكتروني" icon={<Mail size={16} />} value={config.storeInfo.email} onChange={(e) => updateStoreInfo("email", e.target.value)} />
+                <span className="font-medium text-text">الأعمدة</span>
               </div>
-            </div>
-          </Card>
+              <div className="space-y-3">
+                {config.columns.map((col) => (
+                  <div key={col.id} className="border border-border rounded-lg overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3 bg-bg/50">
+                      <div className="flex items-center gap-3">
+                        <GripVertical size={14} className="text-text-muted cursor-grab" />
+                        <span className={cn("text-sm font-medium", col.enabled ? "text-text" : "text-text-muted")}>{col.title}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Toggle checked={col.enabled} onChange={() => toggleColumnEnabled(col.id)} />
+                        <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => toggleColumnEdit(col.id)} />
+                        <Button variant="ghost" size="sm" icon={<Trash2 size={12} />} className="text-danger hover:text-danger" onClick={() => removeColumn(col.id)} />
+                      </div>
+                    </div>
+                    {col.editing && (
+                      <div className="px-4 py-3 border-t border-border space-y-3">
+                        <Input label="اسم العمود" value={col.title} onChange={(e) => setConfig((prev) => ({ ...prev, columns: prev.columns.map((c) => c.id === col.id ? { ...c, title: e.target.value } : c) }))} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <Button variant="secondary" size="sm" icon={<Plus size={14} />} onClick={addColumn}>إضافة عمود</Button>
+              </div>
+            </Card>
+          </motion.div>
 
-          <Card header={<div className="flex items-center gap-3"><GripVertical size={16} className="text-text-muted cursor-grab" /><span className="font-medium text-text">وسائل التواصل</span></div>} padding="md">
-            <div className="space-y-4">
-              <Input label="فيسبوك" icon={<Globe size={16} />} value={config.social.facebook} onChange={(e) => updateSocial("facebook", e.target.value)} />
-              <Input label="إنستغرام" icon={<Share2 size={16} />} value={config.social.instagram} onChange={(e) => updateSocial("instagram", e.target.value)} />
-              <Input label="تويتر" icon={<MessageCircle size={16} />} value={config.social.twitter} onChange={(e) => updateSocial("twitter", e.target.value)} />
-            </div>
-          </Card>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.1 }}>
+            <Card padding="md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-light">
+                  <MapPin size={16} className="text-primary" />
+                </div>
+                <span className="font-medium text-text">معلومات المتجر</span>
+              </div>
+              <div className="space-y-4">
+                <Input label="اسم المتجر" value={config.storeInfo.name} onChange={(e) => updateStoreInfo("name", e.target.value)} />
+                <Textarea label="وصف المتجر" rows={3} value={config.storeInfo.description} onChange={(e) => updateStoreInfo("description", e.target.value)} />
+                <Input label="العنوان" icon={<MapPin size={16} />} value={config.storeInfo.address} onChange={(e) => updateStoreInfo("address", e.target.value)} />
+                <div className="grid grid-cols-2 gap-4">
+                  <Input label="الهاتف" icon={<Phone size={16} />} value={config.storeInfo.phone} onChange={(e) => updateStoreInfo("phone", e.target.value)} />
+                  <Input label="البريد الإلكتروني" icon={<Mail size={16} />} value={config.storeInfo.email} onChange={(e) => updateStoreInfo("email", e.target.value)} />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
 
-          <Card header={<div className="flex items-center justify-between"><div className="flex items-center gap-3"><GripVertical size={16} className="text-text-muted cursor-grab" /><span className="font-medium text-text">النشرة البريدية</span></div><button onClick={() => updateNewsletter("enabled", !config.newsletter.enabled)} className={cn("relative w-10 h-6 rounded-full transition-colors cursor-pointer", config.newsletter.enabled ? "bg-primary" : "bg-border")}><span className={cn("absolute top-1 w-4 h-4 rounded-full bg-white transition-transform", config.newsletter.enabled ? "right-5" : "right-1")} /></button></div>} padding="md">
-            <div className={cn("space-y-4", !config.newsletter.enabled && "opacity-40 pointer-events-none")}>
-              <Input label="العنوان" value={config.newsletter.title} onChange={(e) => updateNewsletter("title", e.target.value)} />
-              <Textarea label="الوصف" rows={2} value={config.newsletter.description} onChange={(e) => updateNewsletter("description", e.target.value)} />
-            </div>
-          </Card>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.15 }}>
+            <Card padding="md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-light">
+                  <Share2 size={16} className="text-primary" />
+                </div>
+                <span className="font-medium text-text">وسائل التواصل</span>
+              </div>
+              <div className="space-y-4">
+                <Input label="فيسبوك" icon={<Globe size={16} />} value={config.social.facebook} onChange={(e) => updateSocial("facebook", e.target.value)} />
+                <Input label="إنستغرام" icon={<Share2 size={16} />} value={config.social.instagram} onChange={(e) => updateSocial("instagram", e.target.value)} />
+                <Input label="تويتر" icon={<MessageCircle size={16} />} value={config.social.twitter} onChange={(e) => updateSocial("twitter", e.target.value)} />
+              </div>
+            </Card>
+          </motion.div>
 
-          <Card header={<div className="flex items-center gap-3"><GripVertical size={16} className="text-text-muted cursor-grab" /><span className="font-medium text-text">حقوق النشر</span></div>} padding="md">
-            <Input label="نص حقوق النشر" value={config.copyright.text} onChange={(e) => updateCopyright(e.target.value)} />
-          </Card>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.2 }}>
+            <Card padding="md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-light">
+                  <Mail size={16} className="text-primary" />
+                </div>
+                <span className="font-medium text-text">النشرة البريدية</span>
+              </div>
+              <Toggle checked={config.newsletter.enabled} onChange={(v) => setConfig((prev) => ({ ...prev, newsletter: { ...prev.newsletter, enabled: v } }))} label="تفعيل النشرة البريدية" description="السماح للمشتركين بالنشرة البريدية" />
+              <div className={cn("space-y-4 mt-4 transition-opacity", !config.newsletter.enabled && "opacity-40 pointer-events-none")}>
+                <Input label="العنوان" value={config.newsletter.title} onChange={(e) => setConfig((prev) => ({ ...prev, newsletter: { ...prev.newsletter, title: e.target.value } }))} />
+                <Textarea label="الوصف" rows={2} value={config.newsletter.description} onChange={(e) => setConfig((prev) => ({ ...prev, newsletter: { ...prev.newsletter, description: e.target.value } }))} />
+              </div>
+            </Card>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: 0.25 }}>
+            <Card padding="md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-light">
+                  <GripVertical size={16} className="text-primary" />
+                </div>
+                <span className="font-medium text-text">حقوق النشر</span>
+              </div>
+              <Input label="نص حقوق النشر" value={config.copyright.text} onChange={(e) => updateCopyright(e.target.value)} />
+            </Card>
+          </motion.div>
         </div>
 
-        <div className="lg:col-span-2">
+        <motion.div
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, delay: 0.3 }}
+          className="lg:col-span-2"
+        >
           <Card padding="none" className="sticky top-6 overflow-hidden">
-            <div className="px-4 py-3 border-b border-border bg-bg/50"><span className="text-sm font-medium text-text">معاينة مباشرة</span></div>
+            <div className="px-4 py-3 border-b border-border"><span className="text-sm font-medium text-text">معاينة مباشرة</span></div>
             <div className="bg-gray-900 text-white">
               <div className="px-6 pt-10 pb-8 grid grid-cols-3 gap-6">
                 {config.columns.filter((col) => col.enabled).map((col) => (
@@ -180,7 +224,7 @@ export default function FooterBuilderPage() {
               <div className="px-6 py-4 border-t border-gray-800 text-center"><p className="text-xs text-gray-500">{config.copyright.text}</p></div>
             </div>
           </Card>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
+import { motion } from "framer-motion";
 import { Plus, Pencil, Trash2, Users, UserCheck, UserX, Mail, Key, Shield, LogOut, Search } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -18,6 +19,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { useToast } from "@/components/ui/Toast";
 import { useCrud } from "@/lib/hooks/useCrud";
 import { formatDate, formatDateTime, generateId } from "@/lib/utils";
+
+const fadeUp = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } };
 
 type Staff = {
   id: string;
@@ -237,22 +240,26 @@ export default function StaffPage() {
         </div>
       } />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<Users size={20} />} label="إجمالي الموظفين" value={totalItems} color="primary" />
-        <StatCard icon={<UserCheck size={20} />} label="الموظفين النشطين" value={activeCount} color="success" />
-        <StatCard icon={<UserX size={20} />} label="غير النشطين" value={totalItems - activeCount - pendingCount} color="danger" />
-        <StatCard icon={<Mail size={20} />} label="بانتظار القبول" value={pendingCount} color="warning" />
-      </div>
+      <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.05 }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard icon={<Users size={20} />} label="إجمالي الموظفين" value={totalItems} color="primary" />
+          <StatCard icon={<UserCheck size={20} />} label="الموظفين النشطين" value={activeCount} color="success" />
+          <StatCard icon={<UserX size={20} />} label="غير النشطين" value={totalItems - activeCount - pendingCount} color="danger" />
+          <StatCard icon={<Mail size={20} />} label="بانتظار القبول" value={pendingCount} color="warning" />
+        </div>
+      </motion.div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.1 }} className="flex flex-wrap items-center gap-3">
         <SearchInput placeholder="بحث بالاسم أو البريد..." value={search} onChange={setSearch} className="w-64" />
         <Select options={[{ value: "", label: "جميع الأدوار" }, ...roles.map((r) => ({ value: r, label: r }))]} value={filters.role || ""} onChange={(e) => setFilter("role", e.target.value)} />
         <Select options={[{ value: "", label: "جميع الحالات" }, { value: "active", label: "نشط" }, { value: "inactive", label: "غير نشط" }, { value: "pending", label: "قيد الانتظار" }]} value={filters.status || ""} onChange={(e) => setFilter("status", e.target.value)} />
-      </div>
+      </motion.div>
 
-      <DataTable columns={columns} data={paginatedData} emptyMessage="لا يوجد موظفين" rowKey="id" sortable selectable selectedKeys={selectedIds} onSelectionChange={setSelectedIds}
-        pagination={{ currentPage: page, totalPages, totalItems, itemsPerPage: perPage, onPageChange: setPage, onItemsPerPageChange: setPerPage }}
-        striped />
+      <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.15 }}>
+        <DataTable columns={columns} data={paginatedData} emptyMessage="لا يوجد موظفين" rowKey="id" sortable selectable selectedKeys={selectedIds} onSelectionChange={setSelectedIds}
+          pagination={{ currentPage: page, totalPages, totalItems, itemsPerPage: perPage, onPageChange: setPage, onItemsPerPageChange: setPerPage }}
+          striped />
+      </motion.div>
 
       <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="حذف الموظف" message={`هل أنت متأكد من حذف "${deleteTarget?.name}"؟ لا يمكن التراجع عن هذا الإجراء.`} confirmLabel="حذف" cancelLabel="إلغاء" variant="danger" />
 

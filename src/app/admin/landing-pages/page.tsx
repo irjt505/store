@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { Plus, Pencil, Trash2, Copy, ExternalLink, Eye, Layout, TestTube, BarChart3 } from "lucide-react";
+import { motion } from "framer-motion";
+import { Plus, Pencil, Trash2, Copy, ExternalLink, Eye, Layout, TestTube, BarChart3, MoreHorizontal } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { DataTable } from "@/components/ui/DataTable";
 import { StatCard } from "@/components/ui/StatCard";
 import { SearchInput } from "@/components/ui/SearchInput";
 import { Input } from "@/components/ui/Input";
@@ -15,6 +15,7 @@ import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import { Toggle } from "@/components/ui/Toggle";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import { useCrud } from "@/lib/hooks/useCrud";
 import { formatDate, generateId } from "@/lib/utils";
@@ -179,57 +180,102 @@ export default function LandingPagesPage() {
     success("تم التغيير", `تم ${newStatus === "published" ? "نشر" : "إلغاء نشر"} صفحة "${lp.title}"`);
   }, [update, success]);
 
-  const columns = useMemo(() => [
-    { key: "title" as const, label: "العنوان", sortable: true, render: (v: unknown, row: LandingPage) => <div><p className="font-medium text-text">{String(v)}</p><p className="text-xs text-text-muted">/{row.slug}</p></div> },
-    {
-      key: "status" as const, label: "الحالة", sortable: true,
-      render: (value: unknown, row: LandingPage) => (
-        <button onClick={(e) => { e.stopPropagation(); handlePublish(row); }}>
-          <Badge variant={statusConfig[value as string].variant} dot className="cursor-pointer">{statusConfig[value as string].label}</Badge>
-        </button>
-      ),
-    },
-    { key: "views" as const, label: "المشاهدات", sortable: true, render: (v: unknown) => Number(v).toLocaleString("ar-SA") },
-    { key: "conversionRate" as const, label: "معدل التحويل", sortable: true, render: (v: unknown) => <span className="font-semibold text-primary">{Number(v)}%</span> },
-    { key: "associatedType" as const, label: "الارتباط", render: (_: unknown, row: LandingPage) => row.associatedType === "none" ? <span className="text-text-muted">—</span> : <Badge variant="info">{row.associatedType === "product" ? "منتج" : "تصنيف"}: {row.associatedName}</Badge> },
-    { key: "hasABTest" as const, label: "A/B Test", render: (v: unknown) => v ? <Badge variant="purple"><TestTube size={10} className="ml-1" />نشط</Badge> : <span className="text-text-muted">—</span> },
-    {
-      key: "id" as const, label: "الإجراءات", className: "w-32",
-      render: (_: unknown, row: LandingPage) => (
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" icon={<Copy size={14} />} onClick={(e) => { e.stopPropagation(); handleDuplicate(row); }} />
-          <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={(e) => { e.stopPropagation(); openEdit(row); }} />
-          <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} className="text-danger hover:text-danger" onClick={(e) => { e.stopPropagation(); setDeleteTarget(row); }} />
-        </div>
-      ),
-    },
-  ], [openEdit, handleDuplicate, handlePublish]);
+  const statItems = [
+    { icon: <Layout size={20} />, label: "إجمالي الصفحات", value: totalItems, color: "primary" as const },
+    { icon: <Layout size={20} />, label: "منشورة", value: publishedCount, color: "success" as const },
+    { icon: <Eye size={20} />, label: "إجمالي المشاهدات", value: totalViews.toLocaleString("ar-SA"), color: "info" as const },
+    { icon: <BarChart3 size={20} />, label: "معدل التحويل", value: `${avgConversion}%`, color: "warning" as const },
+  ];
 
   return (
     <div className="space-y-6">
-      <PageHeader title="صفحات الهبوط" subtitle="إدارة صفحات الهبوط وتجربة A/B" actions={<Button icon={<Plus size={16} />} onClick={openCreate}>إنشاء صفحة</Button>} />
+      <PageHeader title="صفحات الهبوط" subtitle="إدارة صفحات الهبوط وتجربة A/B" actions={<Button icon={<Plus size={16} />} onClick={openCreate}>إنشاء صفحة هبوط</Button>} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={<Layout size={20} />} label="إجمالي الصفحات" value={totalItems} color="primary" />
-        <StatCard icon={<Layout size={20} />} label="منشورة" value={publishedCount} color="success" />
-        <StatCard icon={<Eye size={20} />} label="إجمالي المشاهدات" value={totalViews.toLocaleString("ar-SA")} color="info" />
-        <StatCard icon={<BarChart3 size={20} />} label="معدل التحويل" value={`${avgConversion}%`} color="warning" />
+        {statItems.map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.05 * i }}
+          >
+            <StatCard icon={stat.icon} label={stat.label} value={stat.value} color={stat.color} />
+          </motion.div>
+        ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.25 }}
+        className="flex flex-wrap items-center gap-3"
+      >
         <SearchInput placeholder="بحث في الصفحات..." value={search} onChange={setSearch} className="w-64" />
         <Select options={[{ value: "", label: "جميع الحالات" }, { value: "published", label: "منشور" }, { value: "draft", label: "مسودة" }, { value: "archived", label: "مؤرشف" }]} value={filters.status || ""} onChange={(e) => setFilter("status", e.target.value)} />
-      </div>
+      </motion.div>
 
-      <DataTable columns={columns} data={paginatedData} emptyMessage="لا توجد صفحات هبوط" rowKey="id" sortable
-        pagination={{ currentPage: page, totalPages, totalItems, itemsPerPage: perPage, onPageChange: setPage, onItemsPerPageChange: setPerPage }}
-        striped />
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.3 }}
+        className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+      >
+        {paginatedData.map((lp, i) => (
+          <motion.div
+            key={lp.id}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.05 * i }}
+          >
+            <Card hover className="h-full">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-text text-sm truncate">{lp.title}</h3>
+                  <p className="text-xs text-text-muted mt-0.5">/{lp.slug}</p>
+                </div>
+                <button onClick={() => handlePublish(lp)}>
+                  <Badge variant={statusConfig[lp.status].variant} dot className="cursor-pointer">{statusConfig[lp.status].label}</Badge>
+                </button>
+              </div>
+              <p className="text-xs text-text-secondary mb-3 line-clamp-2">{lp.description}</p>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="rounded-lg bg-bg p-2.5 text-center">
+                  <p className="text-lg font-bold text-text">{lp.views.toLocaleString("ar-SA")}</p>
+                  <p className="text-[10px] text-text-muted">مشاهدة</p>
+                </div>
+                <div className="rounded-lg bg-bg p-2.5 text-center">
+                  <p className="text-lg font-bold text-primary">{lp.conversionRate}%</p>
+                  <p className="text-[10px] text-text-muted">تحويل</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between pt-3 border-t border-border">
+                <span className="text-[10px] text-text-muted">آخر تعديل: {formatDate(lp.updatedAt)}</span>
+                <div className="flex items-center gap-1">
+                  {lp.hasABTest && <Badge variant="purple" size="sm"><TestTube size={10} className="ml-1" />A/B</Badge>}
+                  <Button variant="ghost" size="sm" icon={<Copy size={14} />} onClick={() => handleDuplicate(lp)} title="نسخ" />
+                  <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => openEdit(lp)} title="تعديل" />
+                  <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} className="text-danger hover:text-danger" onClick={() => setDeleteTarget(lp)} title="حذف" />
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+        ))}
+      </motion.div>
+
+      {paginatedData.length === 0 && (
+        <EmptyState
+          icon={<Layout size={24} />}
+          title="لا توجد صفحات هبوط"
+          description="ابدأ بإنشاء صفحة هبوط جديدة"
+          action={<Button icon={<Plus size={16} />} onClick={openCreate}>إنشاء صفحة</Button>}
+        />
+      )}
 
       <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="حذف صفحة الهبوط" message={`هل أنت متأكد من حذف "${deleteTarget?.title}"؟ لا يمكن التراجع عن هذا الإجراء.`} confirmLabel="حذف" cancelLabel="إلغاء" variant="danger" />
 
       {modalOpen && (
         <Modal open onClose={() => { setModalOpen(false); setEditing(null); }} title={editing ? "تعديل صفحة الهبوط" : "إنشاء صفحة هبوط جديدة"} size="lg">
-          <div className="space-y-4">
+          <div className="space-y-5">
             <Input label="عنوان الصفحة" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} placeholder="مثال: عرض الصيف" />
             <div className="grid grid-cols-2 gap-4">
               <Input label="الرابط (Slug)" value={formSlug} onChange={(e) => setFormSlug(e.target.value)} placeholder="summer-sale" dir="ltr" />

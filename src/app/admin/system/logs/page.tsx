@@ -1,19 +1,23 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { Filter, Download } from "lucide-react";
+import { motion } from "framer-motion";
+import { Filter, Download, Search } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { DataTable } from "@/components/ui/DataTable";
 import { Select } from "@/components/ui/Select";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { useToast } from "@/components/ui/Toast";
 import { useCrud } from "@/lib/hooks/useCrud";
 import { formatDateTime } from "@/lib/utils";
 
+const fadeUp = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } };
+
 type LogEntry = {
-  id: string; timestamp: string; level: string; levelVariant: "info" | "warning" | "danger"; message: string;   source: string;
+  id: string; timestamp: string; level: string; levelVariant: "info" | "warning" | "danger"; message: string; source: string;
 };
 
 const initialLogs: LogEntry[] = [
@@ -34,6 +38,8 @@ export default function LogsPage() {
   const {
     filteredData,
     paginatedData,
+    search,
+    setSearch,
     filters,
     setFilter,
     sortKey,
@@ -47,6 +53,7 @@ export default function LogsPage() {
     totalPages,
   } = useCrud<LogEntry>({
     initialData: initialLogs,
+    searchFields: ["message", "source"],
     itemsPerPage: 10,
     defaultSortKey: "timestamp",
     defaultSortDir: "desc",
@@ -57,7 +64,7 @@ export default function LogsPage() {
   }, [info]);
 
   const columns = [
-    { key: "timestamp" as const, label: "التاريخ والوقت", sortable: true, render: (v: unknown) => <span className="text-text-secondary">{formatDateTime(String(v))}</span> },
+    { key: "timestamp" as const, label: "التاريخ والوقت", sortable: true, render: (v: unknown) => <span className="text-text-secondary font-mono text-xs">{formatDateTime(String(v))}</span> },
     { key: "level" as const, label: "المستوى", sortable: true, render: (_v: unknown, row: LogEntry) => <Badge variant={row.levelVariant} dot>{row.level === "info" ? "معلومات" : row.level === "warning" ? "تحذير" : "خطأ"}</Badge> },
     { key: "message" as const, label: "الرسالة", sortable: true },
     { key: "source" as const, label: "المصدر", sortable: true, render: (v: unknown) => <Badge variant="default">{String(v)}</Badge> },
@@ -66,15 +73,20 @@ export default function LogsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="السجلات" subtitle="مراقبة أحداث وسجلات النظام" actions={<Button variant="secondary" icon={<Download size={16} />} onClick={handleExport}>تصدير</Button>} />
-      <div className="flex items-center gap-3">
-        <Filter size={16} className="text-text-secondary" />
+
+      <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.05 }} className="flex flex-wrap items-center gap-3">
+        <SearchInput placeholder="بحث في السجلات..." value={search} onChange={setSearch} className="w-64" />
         <Select options={[{ value: "", label: "جميع المستويات" }, { value: "info", label: "معلومات" }, { value: "warning", label: "تحذير" }, { value: "error", label: "خطأ" }]} value={filters.level || ""} onChange={(e) => setFilter("level", e.target.value)} className="w-48" />
-      </div>
-      <Card padding="none">
-        <div className="p-4">
-          <DataTable columns={columns} data={paginatedData} emptyMessage="لا توجد سجلات" rowKey="id" sortable pagination={{ currentPage: page, totalPages, totalItems, itemsPerPage: perPage, onPageChange: setPage, onItemsPerPageChange: setPerPage }} />
-        </div>
-      </Card>
+        <Badge variant="info">{totalItems} سجل</Badge>
+      </motion.div>
+
+      <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.1 }}>
+        <Card padding="none">
+          <div className="p-4">
+            <DataTable columns={columns} data={paginatedData} emptyMessage="لا توجد سجلات" rowKey="id" sortable pagination={{ currentPage: page, totalPages, totalItems, itemsPerPage: perPage, onPageChange: setPage, onItemsPerPageChange: setPerPage }} />
+          </div>
+        </Card>
+      </motion.div>
     </div>
   );
 }

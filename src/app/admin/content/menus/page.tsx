@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { GripVertical, Plus, Trash2, ExternalLink, ChevronDown, ChevronRight, Save, Pencil } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { GripVertical, Plus, Trash2, ExternalLink, ChevronDown, ChevronRight, Save, Pencil, FolderTree } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -10,6 +11,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useToast } from "@/components/ui/Toast";
 import { cn, generateId } from "@/lib/utils";
 
@@ -18,21 +20,23 @@ type MenuItem = {
   label: string;
   url: string;
   type: "page" | "category" | "custom";
+  visible?: boolean;
+  order?: number;
   children?: MenuItem[];
 };
 
 const initialMenu: MenuItem[] = [
-  { id: "1", label: "الرئيسية", url: "/", type: "page" },
+  { id: "1", label: "الرئيسية", url: "/", type: "page", visible: true, order: 1 },
   {
-    id: "2", label: "المنتجات", url: "/products", type: "category",
+    id: "2", label: "المنتجات", url: "/products", type: "category", visible: true, order: 2,
     children: [
-      { id: "2-1", label: "إلكترونيات", url: "/products/electronics", type: "category" },
-      { id: "2-2", label: "أزياء", url: "/products/fashion", type: "category" },
-      { id: "2-3", label: "عروض", url: "/products/offers", type: "category" },
+      { id: "2-1", label: "إلكترونيات", url: "/products/electronics", type: "category", visible: true, order: 1 },
+      { id: "2-2", label: "أزياء", url: "/products/fashion", type: "category", visible: true, order: 2 },
+      { id: "2-3", label: "عروض", url: "/products/offers", type: "category", visible: true, order: 3 },
     ],
   },
-  { id: "3", label: "من نحن", url: "/about-us", type: "page" },
-  { id: "4", label: "تواصل معنا", url: "/contact-us", type: "page" },
+  { id: "3", label: "من نحن", url: "/about-us", type: "page", visible: true, order: 3 },
+  { id: "4", label: "تواصل معنا", url: "/contact-us", type: "page", visible: true, order: 4 },
 ];
 
 const typeConfig: Record<MenuItem["type"], { label: string; variant: "info" | "purple" | "default" }> = {
@@ -42,9 +46,9 @@ const typeConfig: Record<MenuItem["type"], { label: string; variant: "info" | "p
 };
 
 function MenuItemRow({
-  item, depth = 0, onDelete, onEdit,
+  item, depth = 0, onDelete, onEdit, onAddChild,
 }: {
-  item: MenuItem; depth?: number; onDelete: (id: string) => void; onEdit: (item: MenuItem) => void;
+  item: MenuItem; depth?: number; onDelete: (id: string) => void; onEdit: (item: MenuItem) => void; onAddChild: (parentId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const hasChildren = item.children && item.children.length > 0;
@@ -52,10 +56,13 @@ function MenuItemRow({
   return (
     <div>
       <div
-        className={cn("flex items-center gap-3 px-4 py-3 border-b border-border-light hover:bg-surface-hover transition-colors", depth > 0 && "bg-bg/50")}
-        style={{ paddingRight: `${(depth * 24) + 16}px` }}
+        className={cn(
+          "flex items-center gap-3 px-4 py-3 border-b border-border-light hover:bg-surface-hover transition-colors group",
+          depth > 0 && "bg-bg/30"
+        )}
+        style={{ paddingRight: `${(depth * 28) + 16}px` }}
       >
-        <GripVertical size={16} className="text-text-muted cursor-grab shrink-0" />
+        <GripVertical size={16} className="text-text-muted cursor-grab shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
         {hasChildren ? (
           <button onClick={() => setExpanded(!expanded)} className="shrink-0 text-text-muted hover:text-text transition-colors cursor-pointer">
             {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
@@ -65,18 +72,26 @@ function MenuItemRow({
         )}
         <span className="font-medium text-text text-sm flex-1 min-w-0 truncate">{item.label}</span>
         <code className="text-xs text-text-muted bg-bg px-2 py-0.5 rounded font-mono shrink-0">{item.url}</code>
-        <Badge variant={typeConfig[item.type].variant}>{typeConfig[item.type].label}</Badge>
+        <Badge variant={typeConfig[item.type].variant} size="sm">{typeConfig[item.type].label}</Badge>
+        <Button variant="ghost" size="sm" icon={<Plus size={14} />} onClick={() => onAddChild(item.id)} title="إضافة فرعي" />
         <Button variant="ghost" size="sm" icon={<Pencil size={14} />} onClick={() => onEdit(item)} title="تعديل" />
         <Button variant="ghost" size="sm" icon={<ExternalLink size={14} />} title="فتح" onClick={() => window.open(item.url, "_blank")} />
         <Button variant="ghost" size="sm" icon={<Trash2 size={14} />} className="text-danger hover:text-danger" onClick={() => onDelete(item.id)} title="حذف" />
       </div>
-      {hasChildren && expanded && item.children && (
-        <div>
-          {item.children.map((child) => (
-            <MenuItemRow key={child.id} item={child} depth={depth + 1} onDelete={onDelete} onEdit={onEdit} />
-          ))}
-        </div>
-      )}
+      <AnimatePresence>
+        {hasChildren && expanded && item.children && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            {item.children.map((child) => (
+              <MenuItemRow key={child.id} item={child} depth={depth + 1} onDelete={onDelete} onEdit={onEdit} onAddChild={onAddChild} />
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -143,7 +158,7 @@ export default function MenusPage() {
       setMenu((prev) => updateItem(prev));
       success("تم التحديث", `تم تحديث "${formLabel}" بنجاح`);
     } else {
-      const newItem: MenuItem = { id: generateId(), label: formLabel, url, type: formType };
+      const newItem: MenuItem = { id: generateId(), label: formLabel, url, type: formType, visible: true };
       if (parentId) {
         const addToParent = (items: MenuItem[]): MenuItem[] =>
           items.map((item) => {
@@ -169,39 +184,60 @@ export default function MenusPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="قوائم التنقل"
+        title="القوائم"
         subtitle="بناء وتنظيم قوائم التنقل في الموقع"
         actions={
           <div className="flex items-center gap-2">
-            <Button variant="outline" icon={<Plus size={16} />} onClick={() => openCreate(null)}>إضافة عنصر</Button>
+            <Button variant="secondary" icon={<Plus size={16} />} onClick={() => openCreate(null)}>إضافة قائمة</Button>
             <Button icon={<Save size={16} />} onClick={handleSaveMenu}>حفظ</Button>
           </div>
         }
       />
 
-      <Card padding="none">
-        <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-bg/50">
-          <span className="text-sm font-medium text-text">القائمة الرئيسية ({countItems(menu)} عنصر)</span>
-        </div>
-        <div className="divide-y divide-border-light">
-          {menu.map((item) => (
-            <MenuItemRow key={item.id} item={item} onDelete={handleDelete} onEdit={openEdit} />
-          ))}
-        </div>
-        {menu.length === 0 && (
-          <div className="text-center py-12 text-text-muted">القائمة فارغة. أضف عناصر للبدء.</div>
-        )}
-      </Card>
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+      >
+        <Card padding="none">
+          <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary-light">
+                <FolderTree size={16} className="text-primary" />
+              </div>
+              <div>
+                <span className="text-sm font-medium text-text">القائمة الرئيسية</span>
+                <p className="text-xs text-text-muted">{countItems(menu)} عنصر</p>
+              </div>
+            </div>
+            <Button variant="secondary" size="sm" icon={<Plus size={14} />} onClick={() => openCreate(null)}>إضافة عنصر</Button>
+          </div>
+          {menu.length > 0 ? (
+            <div>
+              {menu.map((item) => (
+                <MenuItemRow key={item.id} item={item} onDelete={handleDelete} onEdit={openEdit} onAddChild={openCreate} />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={<FolderTree size={24} />}
+              title="القائمة فارغة"
+              description="أضف عناصر للبدء في بناء قائمة التنقل"
+              action={<Button icon={<Plus size={16} />} onClick={() => openCreate(null)}>إضافة عنصر</Button>}
+            />
+          )}
+        </Card>
+      </motion.div>
 
       <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={confirmDelete} title="حذف العنصر" message="هل أنت متأكد من حذف هذا العنصر وجميع عناصره الفرعية؟ لا يمكن التراجع." confirmLabel="حذف" cancelLabel="إلغاء" variant="danger" />
 
       {modalOpen && (
         <Modal open onClose={() => { setModalOpen(false); setEditTarget(null); setParentId(null); }} title={editTarget ? "تعديل العنصر" : parentId ? "إضافة عنصر فرعي" : "إضافة عنصر جديد"} size="md">
-          <div className="space-y-4">
+          <div className="space-y-5">
             <Input label="اسم العنصر" value={formLabel} onChange={(e) => setFormLabel(e.target.value)} placeholder="مثال: المنتجات" />
             <Input label="الرابط (URL)" value={formUrl} onChange={(e) => setFormUrl(e.target.value)} placeholder="يتم إنشاؤه تلقائياً" dir="ltr" />
             <Select label="النوع" options={[{ value: "page", label: "صفحة" }, { value: "category", label: "تصنيف" }, { value: "custom", label: "مخصص" }]} value={formType} onChange={(e) => setFormType(e.target.value as "page" | "category" | "custom")} />
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-3 pt-2 border-t border-border">
               <Button variant="secondary" onClick={() => { setModalOpen(false); setEditTarget(null); setParentId(null); }}>إلغاء</Button>
               <Button onClick={handleSave}>{editTarget ? "حفظ التعديلات" : "إضافة"}</Button>
             </div>

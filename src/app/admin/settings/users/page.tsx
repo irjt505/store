@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { motion } from "framer-motion";
 import { Plus, Pencil, Trash2, Shield, Eye, CheckCircle2 } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -11,10 +12,13 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
+import { SearchInput } from "@/components/ui/SearchInput";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { useCrud } from "@/lib/hooks/useCrud";
 import { formatDateTime, generateId } from "@/lib/utils";
+
+const fadeUp = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } };
 
 type User = {
   id: string; name: string; email: string; role: string; roleVariant: "danger" | "info" | "default"; active: boolean;   lastLogin: string;
@@ -129,13 +133,18 @@ export default function UsersSettingsPage() {
   return (
     <div className="space-y-6">
       <PageHeader title="المستخدمين والصلاحيات" subtitle="إدارة مستخدمي لوحة التحكم وصلاحياتهم" actions={<Button icon={<Plus size={16} />} onClick={openCreate}>إضافة مستخدم</Button>} />
-      <div className="flex items-center gap-3"><input placeholder="بحث..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-9 px-3 rounded-lg border border-border bg-surface text-sm w-64" /></div>
-      <Card padding="none">
-        <div className="p-4">
-          <DataTable columns={columns} data={paginatedData} emptyMessage="لا يوجد مستخدمون" rowKey="id" sortable pagination={{ currentPage: page, totalPages, totalItems, itemsPerPage: perPage, onPageChange: setPage, onItemsPerPageChange: setPerPage }} />
-        </div>
-      </Card>
-      <Card header={<h3 className="font-semibold text-text">الأدوار والصلاحيات</h3>} padding="md">
+      <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.05 }}>
+        <SearchInput placeholder="بحث بالاسم أو البريد..." value={search} onChange={setSearch} className="w-64" />
+      </motion.div>
+      <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.1 }}>
+        <Card padding="none">
+          <div className="p-4">
+            <DataTable columns={columns} data={paginatedData} emptyMessage="لا يوجد مستخدمون" rowKey="id" sortable pagination={{ currentPage: page, totalPages, totalItems, itemsPerPage: perPage, onPageChange: setPage, onItemsPerPageChange: setPerPage }} />
+          </div>
+        </Card>
+      </motion.div>
+      <motion.div initial="hidden" animate="visible" variants={fadeUp} transition={{ delay: 0.15 }}>
+        <Card header={<div className="flex items-center gap-2"><Shield size={16} className="text-primary" /><h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wide">الأدوار والصلاحيات</h3></div>} padding="md">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {roles.map((role) => (
             <div key={role.name} className="rounded-lg border border-border p-4 space-y-3">
@@ -148,7 +157,8 @@ export default function UsersSettingsPage() {
             </div>
           ))}
         </div>
-      </Card>
+        </Card>
+      </motion.div>
 
       <ConfirmDialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDelete} title="حذف المستخدم" message={`هل أنت متأكد من حذف "${deleteTarget?.name}"؟`} confirmLabel="حذف" cancelLabel="إلغاء" variant="danger" />
 
